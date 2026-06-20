@@ -1,0 +1,154 @@
+{
+  "Bangalore": [
+    {
+      "station_name": "Traffic Management Center",
+      "lat": 12.9825,
+      "lon": 77.5946
+    },
+    {
+      "station_name": "Silk Board Junction",
+      "lat": 12.9177,
+      "lon": 77.6229
+    },
+    {
+      "station_name": "Hebbal Flyover Junction",
+      "lat": 13.0355,
+      "lon": 77.5970
+    },
+    {
+      "station_name": "KR Puram Junction",
+      "lat": 13.0087,
+      "lon": 77.6959
+    },
+    {
+      "station_name": "Tin Factory Junction",
+      "lat": 12.9960,
+      "lon": 77.6608
+    },
+    {
+      "station_name": "Marathahalli Junction",
+      "lat": 12.9591,
+      "lon": 77.6974
+    },
+    {
+      "station_name": "Sony World Junction",
+      "lat": 12.9352,
+      "lon": 77.6245
+    },
+    {
+      "station_name": "Adugodi Junction",
+      "lat": 12.9422,
+      "lon": 77.6098
+    },
+    {
+      "station_name": "Devarabeesanahalli Junction",
+      "lat": 12.9497,
+      "lon": 77.6960
+    },
+    {
+      "station_name": "Manipal Hospital Junction",
+      "lat": 12.9580,
+      "lon": 77.6486
+    },
+    {
+      "station_name": "HAL Main Gate",
+      "lat": 12.9589,
+      "lon": 77.6685
+    },
+    {
+      "station_name": "Mekhri Circle",
+      "lat": 13.0136,
+      "lon": 77.5852
+    },
+    {
+      "station_name": "Yeshwanthpur Circle",
+      "lat": 13.0285,
+      "lon": 77.5547
+    },
+    {
+      "station_name": "Goraguntepalya Junction",
+      "lat": 13.0288,
+      "lon": 77.5416
+    },
+    {
+      "station_name": "Nayandahalli Junction",
+      "lat": 12.9466,
+      "lon": 77.5256
+    },
+    {
+      "station_name": "Mysore Road Satellite Bus Stand",
+      "lat": 12.9513,
+      "lon": 77.5332
+    },
+    {
+      "station_name": "Banashankari Junction",
+      "lat": 12.9255,
+      "lon": 77.5468
+    },
+    {
+      "station_name": "Jayanagar 4th Block",
+      "lat": 12.9250,
+      "lon": 77.5938
+    },
+    {
+      "station_name": "Lalbagh West Gate",
+      "lat": 12.9506,
+      "lon": 77.5848
+    },
+    {
+      "station_name": "Richmond Circle",
+      "lat": 12.9660,
+      "lon": 77.5993
+    },
+    {
+      "station_name": "Shivajinagar Bus Stand",
+      "lat": 12.9834,
+      "lon": 77.6033
+    },
+    {
+      "station_name": "MG Road Junction",
+      "lat": 12.9758,
+      "lon": 77.6056
+    },
+    {
+      "station_name": "Trinity Circle",
+      "lat": 12.9737,
+      "lon": 77.6207
+    },
+    {
+      "station_name": "Domlur Flyover",
+      "lat": 12.9612,
+      "lon": 77.6387
+    },
+    {
+      "station_name": "Bellandur Junction",
+      "lat": 12.9257,
+      "lon": 77.6762
+    },
+    {
+      "station_name": "Electronic City Toll",
+      "lat": 12.8399,
+      "lon": 77.6770
+    },
+    {
+      "station_name": "Attibele Check Post",
+      "lat": 12.7830,
+      "lon": 77.7700
+    },
+    {
+      "station_name": "Whitefield Hope Farm",
+      "lat": 12.9863,
+      "lon": 77.7539
+    },
+    {
+      "station_name": "ITPL Main Gate",
+      "lat": 12.9858,
+      "lon": 77.7370
+    },
+    {
+      "station_name": "Kundalahalli Gate",
+      "lat": 12.9646,
+      "lon": 77.7111
+    }
+  ]
+}

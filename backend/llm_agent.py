@@ -1,22 +1,37 @@
 import os
 import json
-import google.generativeai as genai
+from google import genai
+from google.genai import types
+from pydantic import BaseModel 
 from dotenv import load_dotenv
 
-load_dotenv()
+# Find the absolute path to backend/.env relative to this file's location
+base_dir = os.path.dirname(os.path.abspath(__file__))
+env_path = os.path.join(base_dir, ".env")
+
+# Force load from the correct directory path
+load_dotenv(dotenv_path=env_path)
+
 GOOGLE_API_KEY = os.getenv("GEMINI_API_KEY")
 
 if not GOOGLE_API_KEY:
     raise ValueError("CRITICAL ERROR: API Key not found. Check your .env file!")
 
-genai.configure(api_key=GOOGLE_API_KEY)
-gemini_model = genai.GenerativeModel('gemini-2.5-flash')
+# ✅ NEW: Initialize the central GenAI client
+client = genai.Client(api_key=GOOGLE_API_KEY)
+
+
+class TrafficIntelligence(BaseModel): # Inherit from Pydantic's BaseModel
+    severity_multiplier: float
+    hazards_present: list[str]
+    special_assets_needed: list[str]
+
 
 def parse_traffic_description(description_text: str) -> dict:
-    """
-    Sends incident description to Gemini and returns structured severity data.
+    """Sends incident description to Gemini and returns structured severity data.
+
     Handles both English and Kannada text.
-    
+
     Returns:
         {
             "severity_multiplier": float (1.0 - 3.0),
@@ -25,11 +40,15 @@ def parse_traffic_description(description_text: str) -> dict:
         }
     """
     # Return safe defaults for empty/null descriptions
-    if not description_text or str(description_text).strip() == "" or str(description_text).lower() == "nan":
+    if (
+        not description_text
+        or str(description_text).strip() == ""
+        or str(description_text).lower() == "nan"
+    ):
         return {
             "severity_multiplier": 1.0,
             "hazards_present": ["none"],
-            "special_assets_needed": ["standard_patrol"]
+            "special_assets_needed": ["standard_patrol"],
         }
 
     prompt = f"""
@@ -38,43 +57,47 @@ def parse_traffic_description(description_text: str) -> dict:
     
     Incident Report: "{description_text}"
     
-    Your task is to extract operational intelligence and return it strictly as a JSON object.
-    Do not include any markdown formatting, backticks, or extra text. ONLY return valid JSON.
+    Your task is to extract operational intelligence and return it strictly following the requested JSON schema.
     
-    JSON Schema Requirements:
-    - "severity_multiplier": A float from 1.0 to 3.0.
-      (1.0 = minor/standard, 1.5 = heavy vehicle/bus/tree fall,
-       2.0 = major blockage/accident, 3.0 = fire/flooding/complete road closure)
-    - "hazards_present": A list of strings describing hazards
-      (e.g., "waterlogging", "debris", "blocked_lane", "fire", "injured_persons")
-    - "special_assets_needed": A list of strings for required equipment
-      (e.g., "heavy_crane", "fire_engine", "chainsaw", "ambulance").
-      Default to ["standard_patrol"] if nothing special is needed.
+    Severity guidance:
+    - 1.0 = minor/standard
+    - 1.5 = heavy vehicle/bus/tree fall
+    - 2.0 = major blockage/accident
+    - 3.0 = fire/flooding/complete road closure
     """
 
     try:
-        response = gemini_model.generate_content(prompt)
-        cleaned_text = response.text.replace('```json', '').replace('```', '').strip()
-        result = json.loads(cleaned_text)
+        # ✅ NEW: Use client.models.generate_content with structured outputs
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=TrafficIntelligence,  # Forces compliance with Pydantic class
+                temperature=0.1,  # Low temp ensures strict, deterministic adherence to facts
+            ),
+        )
+
+        # ✅ NEW: The SDK handles parsing automatically via response.parsed
+        # If response.parsed isn't populated, we fallback to loading text safely
+        if response.parsed:
+            result = response.parsed.model_dump()
+        else:
+            result = json.loads(response.text)
 
         # Validate and clamp severity_multiplier to safe range
-        result["severity_multiplier"] = max(1.0, min(3.0, float(result.get("severity_multiplier", 1.0))))
+        result["severity_multiplier"] = max(
+            1.0, min(3.0, float(result.get("severity_multiplier", 1.0)))
+        )
         result.setdefault("hazards_present", ["unknown"])
         result.setdefault("special_assets_needed", ["standard_patrol"])
 
         return result
 
-    except json.JSONDecodeError:
-        print(f"[LLM] JSON parse error for input: {description_text[:50]}...")
-        return {
-            "severity_multiplier": 1.0,
-            "hazards_present": ["parse_error"],
-            "special_assets_needed": ["standard_patrol"]
-        }
     except Exception as e:
         print(f"[LLM] Gemini API error: {e}")
         return {
             "severity_multiplier": 1.0,
             "hazards_present": ["api_error"],
-            "special_assets_needed": ["standard_patrol"]
+            "special_assets_needed": ["standard_patrol"],
         }
