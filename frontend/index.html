@@ -3855,9 +3855,7 @@
     // ────────────────────────────────────────────────────────────────────────────────────────────────────
     // MOCK INCIDENT DATA (Real Coordinates + Drawer Metadata)
     // ────────────────────────────────────────────────────────────────────────────────────────────────────
-    const BASE_URL = window.location.origin.includes(':5001')
-      ? window.location.origin.replace(':5001', ':8000')
-      : (window.location.protocol === 'file:' ? 'http://localhost:8000' : window.location.origin);
+    const BASE_URL = window.location.origin;
     let RESOURCE_SUMMARY = null;
     let INCIDENTS = {};
     let NEWS = [];
@@ -7150,7 +7148,7 @@
 
     function openRoutePlanner() {
       const panel = document.getElementById('routePlannerPanel');
-      if (panel) panel.style.right = '0px';
+      if (panel) panel.style.right = '0';
       const btn = document.getElementById('btnRoutePlanner');
       if (btn) btn.textContent = '✕ Close Planner';
     }
@@ -7397,7 +7395,7 @@
       refreshResourceStats();
 
       // Load reports and live news
-      loadIncidents();
+      loadReportsAndNews();
 
       // Render initial empty sidebar
       renderSidebar();
