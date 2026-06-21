@@ -3865,6 +3865,7 @@
 
     // Global references for WebSockets, route planner, and layers
     let ws = null;
+    let wsReconnectTimeout = null;
     let pickRouteType = null;
     let hotspotsEnabled = false;
     let hotspotsLayer = null;
@@ -6766,6 +6767,10 @@
     // WEBSOCKET — LIVE INCIDENT STREAM
     // ───────────────────────────────────────────────────────────────
     function initWebSocket() {
+      if (wsReconnectTimeout) {
+        clearTimeout(wsReconnectTimeout);
+        wsReconnectTimeout = null;
+      }
       if (ws) {
         try {
           ws.onclose = null;
@@ -6779,6 +6784,10 @@
       ws.onopen = () => {
         console.log('[WS] Connected to', wsUrl);
         document.getElementById('lastUpdatedText').textContent = 'WebSocket: LIVE';
+        if (wsReconnectTimeout) {
+          clearTimeout(wsReconnectTimeout);
+          wsReconnectTimeout = null;
+        }
       };
 
       ws.onmessage = (event) => {
@@ -6842,7 +6851,10 @@
       ws.onclose = () => {
         console.warn('[WS] Disconnected — reconnecting in 3s');
         document.getElementById('lastUpdatedText').textContent = 'WebSocket: Reconnecting...';
-        setTimeout(initWebSocket, 3000);
+        if (wsReconnectTimeout) {
+          clearTimeout(wsReconnectTimeout);
+        }
+        wsReconnectTimeout = setTimeout(initWebSocket, 3000);
       };
     }
 

@@ -1,13 +1,26 @@
 import sys
+import os
+
 # Python 3.14 protobuf compatibility patch
 sys.modules['google._upb._message'] = None
 
+# Ensure both backend/ and root directories are in sys.path
+backend_dir = os.path.dirname(os.path.abspath(__file__))
+base_dir = os.path.dirname(backend_dir)
+
+if backend_dir not in sys.path:
+    sys.path.append(backend_dir)
+if base_dir not in sys.path:
+    sys.path.append(base_dir)
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.wsgi import WSGIMiddleware
 from routers import predictions, predict, resources, incidents, analytics, routing
 from database import engine, Base, SessionLocal
 from db_models import seed_resources
 from websocket_manager import manager
+from app import app as flask_app
 
 
 app = FastAPI(
@@ -57,13 +70,14 @@ def health_check():
     return {"status": "ok"}
 
 
-@app.get("/", tags=["meta"])
-def root():
-    return {
-        "message": "Bengaluru Traffic Incident Prediction API",
-        "docs": "/docs",
-        "health": "/health",
-    }
+# Commented out root route to let the Flask frontend load at "/"
+# @app.get("/", tags=["meta"])
+# def root():
+#     return {
+#         "message": "Bengaluru Traffic Incident Prediction API",
+#         "docs": "/docs",
+#         "health": "/health",
+#     }
 
 
 @app.websocket("/ws")
@@ -100,3 +114,7 @@ async def websocket_endpoint(websocket: WebSocket):
         manager.disconnect(websocket)
     finally:
         db.close()
+
+
+# Mount the Flask application at "/" as the fallback
+app.mount("/", WSGIMiddleware(flask_app))

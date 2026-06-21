@@ -47,6 +47,13 @@ def create_app(data_base_dir, frontend_dir):
 
 app = create_app(DATA_BASE_DIR, FRONTEND_FOLDER)
 
+@app.after_request
+def add_header(response):
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
 @app.route("/")
 def home():
     return render_template("home.html") 

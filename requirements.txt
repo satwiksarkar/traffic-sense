@@ -1,0 +1,16 @@
+fastapi
+uvicorn[standard]
+python-multipart
+flask
+flask-cors
+sqlalchemy
+python-dotenv
+feedparser
+spacy
+numpy
+pandas
+joblib
+scikit-learn
+ngboost
+google-genai
+pydantic
