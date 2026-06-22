@@ -1116,8 +1116,414 @@
         </div>
 
         <div id="viewForecast" class="view-panel">
-            <h2>Content of Event Forecast Model</h2>
-            <p>Placeholder for Predictive NGBoost Analytics charts and timeline graphs.</p>
+            <style>
+                .fc-layout-wrapper {
+                    display: grid;
+                    grid-template-columns: 320px 1fr;
+                    gap: 20px;
+                    height: calc(100vh - 120px);
+                    min-height: 550px;
+                }
+
+                @media (max-width: 900px) {
+                    .fc-layout-wrapper {
+                        grid-template-columns: 1fr;
+                        height: auto;
+                    }
+                }
+
+                /* Left Side: News Feed Panel */
+                .fc-news-sidebar {
+                    background-color: var(--panel-bg);
+                    border: 1px solid var(--border-color);
+                    border-radius: 6px;
+                    display: flex;
+                    flex-direction: column;
+                    overflow: hidden;
+                }
+
+                .fc-sidebar-header {
+                    padding: 12px 16px;
+                    border-bottom: 1px solid var(--border-color);
+                    background-color: rgba(255, 255, 255, 0.02);
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+
+                .fc-news-list {
+                    flex: 1;
+                    overflow-y: auto;
+                    padding: 12px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 10px;
+                }
+
+                .fc-news-card {
+                    background-color: var(--panel-bg-hover);
+                    border: 1px solid var(--border-color);
+                    border-radius: 6px;
+                    padding: 12px;
+                    cursor: pointer;
+                    transition: border-color 0.2s ease, background-color 0.2s ease;
+                }
+
+                .fc-news-card:hover {
+                    border-color: var(--accent-blue);
+                    background-color: rgba(88, 166, 255, 0.05);
+                }
+
+                .fc-news-card.active-selected {
+                    border-color: var(--accent-blue);
+                    background-color: rgba(88, 166, 255, 0.1);
+                    box-shadow: 0 0 8px rgba(88, 166, 255, 0.2);
+                }
+
+                .fc-card-meta {
+                    display: flex;
+                    justify-content: space-between;
+                    font-size: 11px;
+                    color: var(--text-muted);
+                    margin-bottom: 6px;
+                }
+
+                .fc-card-title {
+                    font-size: 12px;
+                    font-weight: 500;
+                    line-height: 1.4;
+                    color: var(--text-primary);
+                    display: -webkit-box;
+                    -webkit-line-clamp: 2;
+                    -webkit-box-orient: vertical;
+                    overflow: hidden;
+                }
+
+                /* Right Side: Prediction Metrics Workspace */
+                .fc-results-pane {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 16px;
+                    overflow-y: auto;
+                    padding-right: 4px;
+                }
+
+                .fc-hero-metric-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+                    gap: 12px;
+                }
+
+                .fc-metric-card {
+                    background-color: var(--panel-bg-hover);
+                    border: 1px solid var(--border-color);
+                    padding: 14px;
+                    border-radius: 6px;
+                }
+
+                .fc-metric-card .lbl {
+                    font-size: 11px;
+                    color: var(--text-muted);
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    margin-bottom: 4px;
+                }
+
+                .fc-metric-card .val {
+                    font-size: 18px;
+                    font-weight: 700;
+                    color: var(--text-primary);
+                }
+
+                .fc-details-split {
+                    display: grid;
+                    grid-template-columns: 1fr 1.2fr;
+                    gap: 16px;
+                }
+
+                @media (max-width: 768px) {
+                    .fc-details-split {
+                        grid-template-columns: 1fr;
+                    }
+                }
+
+                .fc-block-panel {
+                    background-color: rgba(255, 255, 255, 0.01);
+                    border: 1px solid var(--border-color);
+                    border-radius: 6px;
+                    padding: 16px;
+                }
+
+                .fc-interval-bar {
+                    background: #21262d;
+                    height: 8px;
+                    border-radius: 4px;
+                    position: relative;
+                    margin: 16px 0 6px 0;
+                }
+
+                .fc-interval-fill {
+                    background: linear-gradient(90deg, var(--accent-blue), var(--live-red));
+                    height: 100%;
+                    position: absolute;
+                    left: 0%;
+                    width: 0%;
+                    border-radius: 4px;
+                    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+                }
+
+                .fc-insight-box {
+                    background: rgba(88, 166, 255, 0.03);
+                    border: 1px dashed rgba(88, 166, 255, 0.25);
+                    padding: 14px;
+                    border-radius: 6px;
+                    margin-top: 12px;
+                }
+            </style>
+
+            <div class="fc-layout-wrapper">
+
+                <div class="fc-news-sidebar">
+                    <div class="fc-sidebar-header">
+                        <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">Active News
+                            Feed</span>
+                        <button id="btnRefreshFcNews"
+                            style="background: none; border: none; color: var(--accent-blue); cursor: pointer; font-size: 12px;">
+                            🔄 Sync
+                        </button>
+                    </div>
+                    <div id="fcNewsListContainer" class="fc-news-list">
+                        <div style="color: var(--text-muted); font-size: 12px; text-align: center; padding: 20px;">
+                            Loading active channels...
+                        </div>
+                    </div>
+                </div>
+
+                <div class="fc-results-pane">
+                    <div class="fc-block-panel" style="background: var(--panel-bg);">
+                        <div
+                            style="font-size: 11px; text-transform: uppercase; color: var(--accent-blue); font-weight: 700; margin-bottom: 2px;">
+                            Target Evaluation Node
+                        </div>
+                        <h2 id="fcCurrentNodeTitle" style="margin: 0; font-size: 18px; font-weight: 600; color: #fff;">
+                            Select an Incident News Row
+                        </h2>
+                        <p id="fcCurrentNodeDesc"
+                            style="margin: 6px 0 0 0; font-size: 12px; color: var(--text-muted); line-height: 1.4;">
+                            Click a news item card from the left panel to execute NGBoost + Gemini inference structures.
+                        </p>
+                    </div>
+
+                    <div class="fc-hero-metric-grid">
+                        <div class="fc-metric-card">
+                            <div class="lbl">Predicted Priority</div>
+                            <div id="fcMetricPriority" class="val">--</div>
+                        </div>
+                        <div class="fc-metric-card">
+                            <div class="lbl">Predicted Cause</div>
+                            <div id="fcMetricCause" class="val">--</div>
+                        </div>
+                        <div class="fc-metric-card">
+                            <div class="lbl">Severity Score Index</div>
+                            <div id="fcMetricScore" class="val" style="color: var(--live-red);">--</div>
+                        </div>
+                        <div class="fc-metric-card">
+                            <div class="lbl">Model Confidence</div>
+                            <div id="fcMetricConfidence" class="val" style="color: var(--success-green);">--</div>
+                        </div>
+                    </div>
+
+                    <div class="fc-details-split">
+                        <div class="fc-block-panel">
+                            <h3
+                                style="margin: 0 0 14px 0; font-size: 12px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">
+                                🤖 NGBoost Uncertainty Spectrum
+                            </h3>
+
+                            <div class="fc-interval-bar">
+                                <div id="fcFillBar" class="fc-interval-fill"></div>
+                            </div>
+                            <div
+                                style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-bottom: 16px;">
+                                <span>Lower Bound: <strong id="fcValLower" style="color: #fff;">--</strong></span>
+                                <span>Upper Bound: <strong id="fcValUpper" style="color: #fff;">--</strong></span>
+                            </div>
+
+                            <div
+                                style="font-size: 12px; color: var(--text-muted); border-top: 1px solid var(--border-color); padding-top: 12px;">
+                                Model Variant: <span
+                                    style="font-family: monospace; color: var(--text-primary);">ngboost-v1</span>
+                            </div>
+                        </div>
+
+                        <div class="fc-block-panel"
+                            style="display: flex; flex-direction: column; justify-content: space-between;">
+                            <div>
+                                <h3
+                                    style="margin: 0 0 12px 0; font-size: 12px; text-transform: uppercase; color: var(--accent-blue); letter-spacing: 0.5px;">
+                                    ✨ Gemini LLM Scenario Analysis
+                                </h3>
+                                <p id="fcTextSummary"
+                                    style="margin: 0; font-size: 13px; line-height: 1.5; color: var(--text-primary);">
+                                    Awaiting inference trigger context...
+                                </p>
+                            </div>
+
+                            <div class="fc-insight-box">
+                                <div
+                                    style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #e3b341; margin-bottom: 4px;">
+                                    💡 Tactical Response Strategy:
+                                </div>
+                                <p id="fcTextRecommendation"
+                                    style="margin: 0; font-size: 12px; line-height: 1.4; color: var(--text-primary);">
+                                    Awaiting structural engine properties...
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+                (function () {
+                    // Internal variable reference tracking state
+                    let loadedNewsCache = [];
+
+                    async function pullSidebarNewsFeed() {
+                        const container = document.getElementById("fcNewsListContainer");
+                        if (!container) return;
+
+                        try {
+                            const response = await fetch('/get_news');
+                            if (!response.ok) throw new Error("News source collection fault");
+
+                            const data = await response.json();
+                            const newsItems = data.active_news || [];
+                            loadedNewsCache = newsItems;
+
+                            if (newsItems.length === 0) {
+                                container.innerHTML = `<div style="color:var(--text-muted); font-size:12px; text-align:center; padding:20px;">No operational news reports active.</div>`;
+                                return;
+                            }
+
+                            container.innerHTML = "";
+                            newsItems.forEach(item => {
+                                const card = document.createElement("div");
+                                card.className = "fc-news-card";
+                                card.setAttribute("data-news-id", item.id);
+
+                                // Handle mapping priority style flags safely
+                                const priority = (item.priority || "LOW").toUpperCase();
+                                const pColor = priority === 'HIGH' ? 'var(--live-red)' : (priority === 'MID' || priority === 'MEDIUM' ? '#e3b341' : 'var(--text-muted)');
+
+                                card.innerHTML = `
+                            <div class="fc-card-meta">
+                                <span style="font-weight:600; color: ${pColor}">${priority}</span>
+                                <span>${item.issue_type || 'INCIDENT'}</span>
+                            </div>
+                            <div class="fc-card-title">${item.description || 'No description available'}</div>
+                            <div style="font-size:10px; color:var(--text-muted); margin-top:6px; text-align:right;">
+                                ${item.location_name || 'General'}
+                            </div>
+                        `;
+
+                                card.addEventListener("click", () => handleNewsItemSelection(item, card));
+                                container.appendChild(card);
+                            });
+
+                        } catch (err) {
+                            console.error("Forecast View News Sync Error:", err);
+                            container.innerHTML = `<div style="color:var(--live-red); font-size:12px; text-align:center; padding:20px;">Sync Failure</div>`;
+                        }
+                    }
+
+                    async function handleNewsItemSelection(newsItem, cardElement) {
+                        // Remove existing active states
+                        document.querySelectorAll(".fc-news-card").forEach(el => el.classList.remove("active-selected"));
+                        if (cardElement) cardElement.classList.add("active-selected");
+
+                        // Map header UI values instantly
+                        document.getElementById("fcCurrentNodeTitle").textContent = newsItem.location_name || "India (General)";
+                        document.getElementById("fcCurrentNodeDesc").textContent = newsItem.description || "";
+
+                        // Set metrics layout into dynamic processing animations
+                        document.getElementById("fcMetricPriority").textContent = "⏳ Calculating...";
+                        document.getElementById("fcMetricCause").textContent = "Inference run...";
+                        document.getElementById("fcMetricScore").textContent = "--";
+                        document.getElementById("fcMetricConfidence").textContent = "--";
+                        document.getElementById("fcTextSummary").textContent = "Running predictive NGBoost arrays and matching parameters into Gemini cluster...";
+                        document.getElementById("fcTextRecommendation").textContent = "Computing tactical coordinates...";
+
+                        // Set default processing state on the distribution timeline bar element
+                        const fillBar = document.getElementById("fcFillBar");
+                        if (fillBar) { fillBar.style.width = "0%"; fillBar.style.left = "0%"; }
+
+                        // Map inference query params based on selected item priority
+                        const loc = encodeURIComponent(newsItem.location_name || "India (General)");
+                        const p = String(newsItem.priority).toUpperCase();
+                        const flow = p === 'HIGH' ? 'stop-and-go' : (p === 'MID' || p === 'MEDIUM' ? 'heavy' : 'moderate');
+
+                        // Map description hooks to deduce relative weather context profiles
+                        const descText = String(newsItem.description).toLowerCase();
+                        let weather = 'clear';
+                        if (descText.includes('rain') || descText.includes('monsoon')) weather = 'rainy';
+                        if (descText.includes('fog') || descText.includes('mist')) weather = 'foggy';
+
+                        try {
+                            const response = await fetch(`/api/forcast-result?location=${loc}&flow=${flow}&weather=${weather}`);
+                            if (!response.ok) throw new Error("ML Engine endpoint exception");
+
+                            const data = await response.json();
+
+                            // Render out the returned analytical JSON payload fields
+                            document.getElementById("fcMetricPriority").textContent = data.predicted_priority || "UNKNOWN";
+                            document.getElementById("fcMetricCause").textContent = data.predicted_cause || "Unspecified";
+                            document.getElementById("fcMetricScore").textContent = parseFloat(data.severity_score || 0).toFixed(2);
+                            document.getElementById("fcMetricConfidence").textContent = `${(parseFloat(data.confidence || 0) * 100).toFixed(1)}%`;
+
+                            const lower = parseFloat(data.severity_lower || 0).toFixed(2);
+                            const upper = parseFloat(data.severity_upper || 0).toFixed(2);
+                            document.getElementById("fcValLower").textContent = lower;
+                            document.getElementById("fcValUpper").textContent = upper;
+
+                            // Calculate bar position percentages dynamically inside 10pt scale bounds
+                            if (fillBar) {
+                                let leftPct = Math.max(0, Math.min(85, (lower * 10)));
+                                let widthPct = Math.max(15, Math.min(100 - leftPct, (upper - lower) * 10));
+                                fillBar.style.left = `${leftPct}%`;
+                                fillBar.style.width = `${widthPct}%`;
+                            }
+
+                            // Render Gemini synthesized text response mappings
+                            document.getElementById("fcTextSummary").textContent = data.llm_summary || "No specific scenario overview returned.";
+                            document.getElementById("fcTextRecommendation").textContent = data.llm_recommendation || "Maintain standard tactical field oversight parameters.";
+
+                        } catch (error) {
+                            console.error("Forecast View Pipeline Error:", error);
+                            document.getElementById("fcTextSummary").innerHTML = `<span style="color:var(--live-red);">Inference pipeline communication gap. Check application server logs.</span>`;
+                        }
+                    }
+
+                    function setupEventWiring() {
+                        document.getElementById("btnRefreshFcNews")?.addEventListener("click", pullSidebarNewsFeed);
+
+                        // Intercept global tab controller navigation
+                        const nativeSwitchTab = window.switchTab;
+                        window.switchTab = function (tabId) {
+                            if (typeof nativeSwitchTab === 'function') nativeSwitchTab(tabId);
+                            if (tabId === 'forecast') {
+                                pullSidebarNewsFeed();
+                            }
+                        };
+                    }
+
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', setupEventWiring);
+                    } else {
+                        setupEventWiring();
+                    }
+                })();
+            </script>
         </div>
 
         <div id="viewDeployment" class="view-panel">
@@ -1126,32 +1532,661 @@
         </div>
 
         <div id="viewAnalytics" class="view-panel">
-            <h2>Content of Analytics Engine</h2>
-            <p>Placeholder for overall historical insights and trend lines.</p>
+            <style>
+                .analytics-header-row {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    border-bottom: 1px solid var(--border-color);
+                    padding-bottom: 14px;
+                    margin-bottom: 20px;
+                }
+
+                .analytics-grid-cards {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                    gap: 12px;
+                    margin-bottom: 20px;
+                }
+
+                .analytics-metric-card {
+                    background-color: rgba(255, 255, 255, 0.02);
+                    border: 1px solid var(--border-color);
+                    padding: 14px;
+                    border-radius: 6px;
+                }
+
+                .analytics-metric-card .m-label {
+                    font-size: 11px;
+                    color: var(--text-muted);
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    margin-bottom: 4px;
+                }
+
+                .analytics-metric-card .m-value {
+                    font-size: 22px;
+                    font-weight: 700;
+                    color: var(--text-primary);
+                }
+
+                .analytics-workspace-layout {
+                    display: grid;
+                    grid-template-columns: 2fr 1fr;
+                    gap: 20px;
+                }
+
+                @media (max-width: 768px) {
+                    .analytics-workspace-layout {
+                        grid-template-columns: 1fr;
+                    }
+                }
+
+                .analytics-chart-canvas-wrapper {
+                    background-color: rgba(0, 0, 0, 0.2);
+                    border: 1px solid var(--border-color);
+                    padding: 16px;
+                    border-radius: 6px;
+                    min-height: 250px;
+                }
+
+                .analytics-breakdown-panel {
+                    background-color: var(--panel-bg-hover);
+                    border: 1px solid var(--border-color);
+                    padding: 16px;
+                    border-radius: 6px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 12px;
+                }
+
+                .analytics-data-row {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    font-size: 12px;
+                    padding-bottom: 8px;
+                    border-bottom: 1px solid rgba(48, 54, 61, 0.4);
+                    color: var(--text-muted);
+                }
+
+                .analytics-data-row:last-child {
+                    border-bottom: none;
+                    padding-bottom: 0;
+                }
+
+                .analytics-data-row strong {
+                    color: var(--text-primary);
+                }
+            </style>
+
+            <div class="analytics-header-row">
+                <div>
+                    <h2 style="margin: 0 0 4px 0; color: var(--text-primary); font-size: 16px; font-weight: 600;">
+                        Traffic Analysis Engine</h2>
+                    <p style="margin: 0; color: var(--text-muted); font-size: 12px;">Aggregated metrics, historical
+                        insight modeling, and field deployment multipliers.</p>
+                </div>
+                <button id="btnReloadAnalytics" class="toggle-btn" style="cursor: pointer;">
+                    🔄 Sync Engine
+                </button>
+            </div>
+
+            <div class="analytics-grid-cards">
+                <div class="analytics-metric-card">
+                    <div class="m-label">Monthly Incidents Logged</div>
+                    <div id="anMetricIncidents" class="m-value">--</div>
+                </div>
+                <div class="analytics-metric-card">
+                    <div class="m-label">Avg Forecasted Clearance</div>
+                    <div id="anMetricDuration" class="m-value">-- min</div>
+                </div>
+                <div class="analytics-metric-card">
+                    <div class="m-label">Peak Congestion Window</div>
+                    <div id="anMetricPeak" class="m-value">--</div>
+                </div>
+                <div class="analytics-metric-card">
+                    <div class="m-label">Active Field Deployments</div>
+                    <div id="anMetricActive" class="m-value" style="color: var(--live-red);">--</div>
+                </div>
+            </div>
+
+            <div class="analytics-workspace-layout">
+                <div class="analytics-chart-canvas-wrapper">
+                    <div
+                        style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 14px;">
+                        📈 Congestion Multiplier Timeline Index
+                    </div>
+                    <div style="position: relative; height: 220px; width: 100%;">
+                        <canvas id="canvasAnalyticsTrendChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="analytics-breakdown-panel">
+                    <div
+                        style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 4px;">
+                        📋 System Infrastructure Summary
+                    </div>
+                    <div class="analytics-data-row">
+                        <span>Critical Bottleneck Node:</span>
+                        <strong id="anRowWorstJunction">--</strong>
+                    </div>
+                    <div class="analytics-data-row">
+                        <span>Resolved Records:</span>
+                        <strong id="anRowResolved" style="color: var(--success-green);">--</strong>
+                    </div>
+                    <div class="analytics-data-row">
+                        <span>Mean Severity Multiplier:</span>
+                        <strong id="anRowMultiplier" style="color: #e3b341;">--</strong>
+                    </div>
+                    <div class="analytics-data-row">
+                        <span>Personnel Dispatched:</span>
+                        <strong id="anRowOfficers">-- Officers</strong>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+                (function () {
+                    let chartInstance = null;
+
+                    async function pullAnalysisDataPayload() {
+                        // Instantly update text status counters across data keys
+                        document.getElementById("anRowWorstJunction").textContent = "Updating...";
+
+                        try {
+                            const response = await fetch('/api/analysis');
+                            if (!response.ok) throw new Error("Telemetry sync error");
+
+                            const data = await response.json();
+
+                            // Map metrics to targets
+                            document.getElementById("anMetricIncidents").textContent = data.total_incidents_month ?? 0;
+                            document.getElementById("anMetricDuration").textContent = `${parseFloat(data.avg_predicted_duration ?? 0).toFixed(1)}m`;
+                            document.getElementById("anMetricPeak").textContent = `${data.peak_hour ?? 0}:00 hrs`;
+                            document.getElementById("anMetricActive").textContent = data.total_active ?? 0;
+
+                            document.getElementById("anRowWorstJunction").textContent = data.most_affected_junction || "Clear";
+                            document.getElementById("anRowResolved").textContent = data.total_resolved ?? 0;
+                            document.getElementById("anRowMultiplier").textContent = `${parseFloat(data.avg_severity_multiplier ?? 1.0).toFixed(2)}x`;
+                            document.getElementById("anRowOfficers").textContent = `${data.total_officers_deployed ?? 0} Officers`;
+
+                            generateTrendLineChart(data);
+                        } catch (err) {
+                            console.error("Analytics Pipeline Failure:", err);
+                            document.getElementById("anRowWorstJunction").textContent = "Service Unreachable";
+                        }
+                    }
+
+                    function generateTrendLineChart(data) {
+                        const el = document.getElementById('canvasAnalyticsTrendChart');
+                        if (!el || typeof Chart === 'undefined') return;
+
+                        const ctx = el.getContext('2d');
+                        if (chartInstance) {
+                            chartInstance.destroy();
+                        }
+
+                        // Extrapolate hourly load timeline array baseline using 'peak_hour'
+                        const labels = [];
+                        const chartData = [];
+                        const peak = data.peak_hour ?? 17;
+
+                        for (let hour = 0; hour < 24; hour += 2) {
+                            labels.push(`${hour}:00`);
+                            let offset = Math.abs(hour - peak);
+                            let varianceFactor = Math.max(0.3, 1.4 - (offset * 0.12));
+                            chartData.push((data.avg_severity_multiplier ?? 1.2) * varianceFactor);
+                        }
+
+                        chartInstance = new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: labels,
+                                datasets: [{
+                                    label: 'Severity Load Curve',
+                                    data: chartData,
+                                    borderColor: '#58a6ff',
+                                    backgroundColor: 'rgba(88, 166, 255, 0.05)',
+                                    borderWidth: 2,
+                                    fill: true,
+                                    tension: 0.4,
+                                    pointRadius: 3,
+                                    pointBackgroundColor: '#58a6ff'
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: false } },
+                                scales: {
+                                    x: {
+                                        grid: { color: '#30363d' },
+                                        ticks: { color: '#8b949e', font: { size: 10 } }
+                                    },
+                                    y: {
+                                        grid: { color: '#30363d' },
+                                        ticks: { color: '#8b949e', font: { size: 10 } },
+                                        suggestedMin: 0
+                                    }
+                                }
+                            }
+                        });
+                    }
+
+                    // Bind engine into global navigation stack tracking tab switches
+                    function bindToTabNavigation() {
+                        const triggerButton = document.getElementById("btnReloadAnalytics");
+                        triggerButton?.addEventListener("click", pullAnalysisDataPayload);
+
+                        // Intercept dashboard window tab switching lifecycle
+                        const nativeSwitchTab = window.switchTab;
+                        window.switchTab = function (targetTab) {
+                            if (typeof nativeSwitchTab === 'function') {
+                                nativeSwitchTab(targetTab);
+                            }
+                            if (targetTab === 'analytics') {
+                                // Delay execution briefly to let layout render out bounding boxes
+                                setTimeout(pullAnalysisDataPayload, 50);
+                            }
+                        };
+                    }
+
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', bindToTabNavigation);
+                    } else {
+                        bindToTabNavigation();
+                    }
+                })();
+            </script>
         </div>
 
         <div id="viewResources" class="view-panel">
-            <h2>Content of Resources</h2>
-            <p>Placeholder for depot quantities, field equipment states, and availability records.</p>
+            <style>
+                .res-layout-wrapper {
+                    display: grid;
+                    grid-template-columns: 280px 1fr 320px;
+                    gap: 16px;
+                    height: calc(100vh - 120px);
+                    min-height: 550px;
+                }
+
+                @media (max-width: 1024px) {
+                    .res-layout-wrapper {
+                        grid-template-columns: 1fr;
+                        height: auto;
+                    }
+                }
+
+                /* Common Scoped Panel Styling */
+                .res-sub-panel {
+                    background-color: var(--panel-bg);
+                    border: 1px solid var(--border-color);
+                    border-radius: 6px;
+                    display: flex;
+                    flex-direction: column;
+                    overflow: hidden;
+                }
+
+                .res-panel-header {
+                    padding: 12px 16px;
+                    border-bottom: 1px solid var(--border-color);
+                    background-color: rgba(255, 255, 255, 0.02);
+                    font-size: 13px;
+                    font-weight: 600;
+                    color: var(--text-primary);
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+
+                /* Column 1: Station Selection List */
+                .res-station-list {
+                    flex: 1;
+                    overflow-y: auto;
+                    padding: 12px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                }
+
+                .res-station-card {
+                    background-color: var(--panel-bg-hover);
+                    border: 1px solid var(--border-color);
+                    border-radius: 4px;
+                    padding: 10px 12px;
+                    cursor: pointer;
+                    font-size: 13px;
+                    transition: border-color 0.2s ease, background-color 0.2s ease;
+                }
+
+                .res-station-card:hover {
+                    border-color: var(--accent-blue);
+                }
+
+                .res-station-card.active-station {
+                    border-color: var(--accent-blue);
+                    background-color: rgba(88, 166, 255, 0.08);
+                }
+
+                /* Column 2: Inventory Dashboard Grid */
+                .res-inventory-container {
+                    flex: 1;
+                    overflow-y: auto;
+                    padding: 16px;
+                }
+
+                .res-inventory-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+                    gap: 12px;
+                }
+
+                .res-inv-item-card {
+                    background-color: rgba(255, 255, 255, 0.02);
+                    border: 1px solid var(--border-color);
+                    border-radius: 6px;
+                    padding: 12px;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                }
+
+                .res-inv-item-card .title {
+                    font-size: 11px;
+                    color: var(--text-muted);
+                    text-transform: uppercase;
+                    letter-spacing: 0.3px;
+                    margin-bottom: 6px;
+                }
+
+                .res-inv-item-card .count {
+                    font-size: 20px;
+                    font-weight: 700;
+                    color: var(--text-primary);
+                }
+
+                /* Column 3: Form Panel Controls */
+                .res-form-body {
+                    padding: 16px;
+                    overflow-y: auto;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 12px;
+                }
+
+                .res-form-group {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                }
+
+                .res-form-group label {
+                    font-size: 11px;
+                    color: var(--text-muted);
+                    text-transform: uppercase;
+                }
+
+                .res-form-group input {
+                    background-color: var(--panel-bg-hover);
+                    border: 1px solid var(--border-color);
+                    color: var(--text-primary);
+                    padding: 6px 10px;
+                    border-radius: 4px;
+                    font-size: 13px;
+                }
+
+                .res-form-row-split {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 10px;
+                }
+            </style>
+
+            <div class="res-layout-wrapper">
+
+                <div class="res-sub-panel">
+                    <div class="res-panel-header">
+                        <span>🚔 Police Stations</span>
+                        <button id="btnSyncStations"
+                            style="background:none; border:none; color:var(--accent-blue); cursor:pointer; font-size:12px;">
+                            🔄 Sync
+                        </button>
+                    </div>
+                    <div id="resStationsList" class="res-station-list">
+                        <div style="color:var(--text-muted); font-size:12px; text-align:center; padding-top:20px;">
+                            Loading stations data...</div>
+                    </div>
+                </div>
+
+                <div class="res-sub-panel">
+                    <div class="res-panel-header">
+                        <span>📦 Inventory Metrics & Allocation Breakdown</span>
+                        <span id="resActiveStationLabel"
+                            style="font-size:12px; color:var(--accent-blue); font-weight:400;">No Selection</span>
+                    </div>
+                    <div class="res-inventory-container">
+                        <div id="resInventoryGrid" class="res-inventory-grid">
+                            <div
+                                style="grid-column: 1/-1; color:var(--text-muted); font-size:12px; text-align:center; padding-top:40px;">
+                                Select a deployment station on the left to review inventory allocations.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="res-sub-panel">
+                    <div class="res-panel-header">
+                        <span>➕ Onboard Police Station</span>
+                    </div>
+                    <form id="resNewStationForm" class="res-form-body" onsubmit="return false;">
+                        <div class="res-form-group">
+                            <label>Station Title Name</label>
+                            <input type="text" id="formStationName" placeholder="e.g., Koramangala Traffic PS" required>
+                        </div>
+                        <div class="res-form-row-split">
+                            <div class="res-form-group">
+                                <label>Latitude</label>
+                                <input type="number" step="any" id="formStationLat" placeholder="12.9xxx" required>
+                            </div>
+                            <div class="res-form-group">
+                                <label>Longitude</label>
+                                <input type="number" step="any" id="formStationLon" placeholder="77.5xxx" required>
+                            </div>
+                        </div>
+
+                        <div
+                            style="font-size:11px; color:var(--text-muted); text-transform:uppercase; margin-top:8px; border-top:1px solid var(--border-color); padding-top:12px; font-weight:600;">
+                            Initial Logistics Supply
+                        </div>
+                        <div class="res-form-row-split">
+                            <div class="res-form-group">
+                                <label>Traffic Officers</label>
+                                <input type="number" id="formInvOfficers" value="50">
+                            </div>
+                            <div class="res-form-group">
+                                <label>Patrol Cars</label>
+                                <input type="number" id="formInvCars" value="10">
+                            </div>
+                        </div>
+                        <div class="res-form-row-split">
+                            <div class="res-form-group">
+                                <label>Barricade Sets</label>
+                                <input type="number" id="formInvBarricades" value="20">
+                            </div>
+                            <div class="res-form-group">
+                                <label>Ambulances</label>
+                                <input type="number" id="formInvAmbulances" value="2">
+                            </div>
+                        </div>
+
+                        <button type="submit" id="btnSubmitNewStation" class="toggle-btn"
+                            style="margin-top:12px; background-color:var(--success-green); color:#fff; border:none; cursor:pointer; font-weight:600; padding:8px;">
+                            💾 Register Hub Station
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+
+            <script>
+                (function () {
+                    let stationsCache = [];
+
+                    async function loadPoliceStationsData() {
+                        const listContainer = document.getElementById("resStationsList");
+                        if (!listContainer) return;
+
+                        try {
+                            const response = await fetch('/get_police_stations');
+                            if (!response.ok) throw new Error("Station catalog fetch exception");
+
+                            const data = await response.json();
+                            stationsCache = data.police_stations || [];
+
+                            if (stationsCache.length === 0) {
+                                listContainer.innerHTML = `<div style="color:var(--text-muted); font-size:12px; text-align:center; padding:20px;">No hub stations cataloged.</div>`;
+                                return;
+                            }
+
+                            listContainer.innerHTML = "";
+                            stationsCache.forEach((station, idx) => {
+                                const card = document.createElement("div");
+                                card.className = "res-station-card";
+                                card.innerHTML = `
+                            <div style="font-weight:600; margin-bottom:4px; color:#fff;">${station.station_name || 'Unnamed Hub'}</div>
+                            <div style="font-size:11px; color:var(--text-muted);">Coords: ${parseFloat(station.lat).toFixed(4)}, ${parseFloat(station.lon).toFixed(4)}</div>
+                        `;
+
+                                card.addEventListener("click", () => renderInventoryView(station, card));
+                                listContainer.appendChild(card);
+
+                                // Default focus to index 0 on start
+                                if (idx === 0) {
+                                    renderInventoryView(station, card);
+                                }
+                            });
+
+                        } catch (err) {
+                            console.error("Resources Sync Failure:", err);
+                            listContainer.innerHTML = `<div style="color:var(--live-red); font-size:12px; text-align:center; padding:20px;">Sync Failure</div>`;
+                        }
+                    }
+
+                    function renderInventoryView(station, cardElement) {
+                        document.querySelectorAll(".res-station-card").forEach(c => c.classList.remove("active-station"));
+                        if (cardElement) cardElement.classList.add("active-station");
+
+                        document.getElementById("resActiveStationLabel").textContent = station.station_name || "Active Station";
+                        const grid = document.getElementById("resInventoryGrid");
+                        if (!grid) return;
+
+                        const inventory = station.inventory || {};
+                        const keys = Object.keys(inventory);
+
+                        if (keys.length === 0) {
+                            grid.innerHTML = `<div style="grid-column:1/-1; color:var(--text-muted); font-size:12px; text-align:center; padding-top:40px;">No logistics cataloged at this depot layout.</div>`;
+                            return;
+                        }
+
+                        grid.innerHTML = "";
+                        keys.sort().forEach(key => {
+                            const itemCard = document.createElement("div");
+                            itemCard.className = "res-inv-item-card";
+                            itemCard.innerHTML = `
+                        <div class="title">${key}</div>
+                        <div class="count">${inventory[key]}</div>
+                    `;
+                            grid.appendChild(itemCard);
+                        });
+                    }
+
+                    async function saveNewPoliceStation(e) {
+                        e.preventDefault();
+                        const btn = document.getElementById("btnSubmitNewStation");
+
+                        const name = document.getElementById("formStationName").value;
+                        const lat = parseFloat(document.getElementById("formStationLat").value);
+                        const lon = parseFloat(document.getElementById("formStationLon").value);
+
+                        // Compile structured inventory properties mapping backend validation checks
+                        const payload = {
+                            station_name: name,
+                            lat: lat,
+                            lon: lon,
+                            inventory: {
+                                "Traffic Officer": parseInt(document.getElementById("formInvOfficers").value) || 0,
+                                "Patrol Car": parseInt(document.getElementById("formInvCars").value) || 0,
+                                "Barricade Set (10 units)": parseInt(document.getElementById("formInvBarricades").value) || 0,
+                                "Ambulance": parseInt(document.getElementById("formInvAmbulances").value) || 0,
+                                "Traffic Inspector": 4,
+                                "Fire Engine": 1,
+                                "Heavy Crane": 1,
+                                "Tow Truck": 2,
+                                "Traffic Cone Set": 25
+                            }
+                        };
+
+                        if (btn) { btn.disabled = true; btn.textContent = "⏳ Saving Hub..."; }
+
+                        try {
+                            const response = await fetch('/api/save_police_station', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload)
+                            });
+
+                            if (!response.ok) throw new Error("Database transaction storage error");
+
+                            // Clear and reset registration inputs on success
+                            document.getElementById("resNewStationForm").reset();
+                            alert("✨ Police Station Hub registered successfully inside tracking ledger!");
+
+                            // Force dynamic update reload parameters
+                            await loadPoliceStationsData();
+
+                        } catch (error) {
+                            console.error("Save Hub Failure Exception:", error);
+                            alert("❌ Failed to commit new police station registry entries onto DB pipeline.");
+                        } finally {
+                            if (btn) { btn.disabled = false; btn.textContent = "💾 Register Hub Station"; }
+                        }
+                    }
+
+                    function setupViewWiring() {
+                        document.getElementById("btnSyncStations")?.addEventListener("click", loadPoliceStationsData);
+                        document.getElementById("resNewStationForm")?.addEventListener("submit", saveNewPoliceStation);
+
+                        // Tie into dashboard main view panel display loop listeners
+                        const nativeSwitchTab = window.switchTab;
+                        window.switchTab = function (tabId) {
+                            if (typeof nativeSwitchTab === 'function') nativeSwitchTab(tabId);
+                            if (tabId === 'resources') {
+                                loadPoliceStationsData();
+                            }
+                        };
+                    }
+
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', setupViewWiring);
+                    } else {
+                        setupViewWiring();
+                    }
+                })();
+            </script>
         </div>
 
-        setInterval<div class="view-pane" id="viewControlCenter"
+        <div class="view-pane" id="viewControlCenter"
             style="flex-direction: column; height: calc(100vh - 104px); overflow-y: auto; overflow-x: hidden; background: #0d1117; scroll-behavior: smooth;">
 
             <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
             <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
             <style>
-                /* ── LAYOUT GRID CONTROLS ────────────────────────────────────────── */
-                #viewControlCenter {
-                    display: flex;
-                    flex-direction: column;
-                }
-
-                /* Top row spans the full initial height of the container */
+                /* ── LAYOUT MATRIX CONTROLS ────────────────────────────────────── */
                 .tcc-top-row {
                     display: grid;
-                    grid-template-columns: 340px 1fr;
+                    grid-template-columns: 360px 1fr;
                     gap: 0;
                     height: 100%;
                     min-height: calc(100vh - 104px);
@@ -1159,18 +2194,16 @@
                     border-bottom: 1px solid #30363d;
                 }
 
-                /* Bottom row stays hidden below the fold until the user scrolls */
                 .tcc-bottom-row {
                     display: grid;
                     grid-template-columns: 1fr 1fr;
                     gap: 0;
-                    height: 280px;
+                    min-height: 320px;
                     flex-shrink: 0;
-                    border-top: 1px solid #30363d;
                     background: #0d1117;
                 }
 
-                /* ── LEFT STATION LIST ───────────────────────────────────────────── */
+                /* ── OPERATIONAL STATION LIST PANEL ────────────────────────────── */
                 .tcc-station-panel {
                     border-right: 1px solid #30363d;
                     display: flex;
@@ -1211,17 +2244,17 @@
                 .tcc-station-scroll {
                     flex: 1;
                     overflow-y: auto;
-                    padding: 10px;
+                    padding: 12px;
                     display: flex;
                     flex-direction: column;
-                    gap: 8px;
+                    gap: 10px;
                 }
 
                 .tcc-station-card {
                     background: #161b22;
                     border: 1px solid #30363d;
                     border-radius: 7px;
-                    padding: 11px 12px;
+                    padding: 12px;
                     cursor: pointer;
                     transition: border-color 0.2s, background 0.2s;
                 }
@@ -1233,53 +2266,40 @@
 
                 .tcc-station-card.selected {
                     border-color: #58a6ff;
-                    background: rgba(88, 166, 255, 0.06);
-                    box-shadow: 0 0 10px rgba(88, 166, 255, 0.15);
+                    background: rgba(88, 166, 255, 0.05);
+                    box-shadow: 0 0 12px rgba(88, 166, 255, 0.15);
                 }
 
                 .tcc-s-top {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    margin-bottom: 5px;
+                    margin-bottom: 6px;
                 }
 
                 .tcc-s-name {
-                    font-size: 12px;
+                    font-size: 13px;
                     font-weight: 700;
                     color: #e6edf3;
                 }
 
-                .tcc-s-badge {
-                    font-size: 9px;
-                    font-weight: 700;
+                .tcc-inc-indicator {
+                    font-size: 10px;
+                    color: #f85149;
+                    background: rgba(248, 81, 73, 0.1);
                     padding: 2px 6px;
                     border-radius: 4px;
-                    text-transform: uppercase;
-                }
-
-                .tcc-s-busy {
-                    background: rgba(248, 81, 73, 0.15);
-                    color: #f85149;
-                }
-
-                .tcc-s-idle {
-                    background: rgba(63, 185, 80, 0.15);
-                    color: #3fb950;
+                    border: 1px solid rgba(248, 81, 73, 0.2);
+                    font-weight: 600;
                 }
 
                 .tcc-s-meta {
-                    display: flex;
-                    gap: 10px;
-                    font-size: 10px;
+                    font-size: 11px;
                     color: #8b949e;
+                    line-height: 1.4;
                 }
 
-                .tcc-s-meta strong {
-                    color: #c9d1d9;
-                }
-
-                /* ── CENTER MAP AREA ─────────────────────────────────────────────── */
+                /* ── LEAFLET MAP WRAPPER ────────────────────────────────────────── */
                 .tcc-map-area {
                     position: relative;
                     height: 100%;
@@ -1294,79 +2314,22 @@
 
                 .tcc-map-overlay {
                     position: absolute;
-                    top: 10px;
-                    left: 10px;
+                    top: 12px;
+                    left: 12px;
                     z-index: 1000;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 6px;
                     pointer-events: none;
                 }
 
                 .tcc-map-info-pill {
-                    background: rgba(22, 27, 34, 0.92);
+                    background: rgba(22, 27, 34, 0.95);
                     border: 1px solid #30363d;
                     border-radius: 6px;
-                    padding: 6px 10px;
-                    font-size: 11px;
+                    padding: 8px 12px;
+                    font-size: 12px;
                     color: #e6edf3;
                     pointer-events: auto;
-                    backdrop-filter: blur(4px);
-                }
-
-                .tcc-map-info-pill span {
-                    color: #58a6ff;
-                    font-weight: 700;
-                }
-
-                .tcc-map-legend {
-                    position: absolute;
-                    top: 10px;
-                    right: 10px;
-                    z-index: 1000;
-                    background: rgba(22, 27, 34, 0.92);
-                    border: 1px solid #30363d;
-                    border-radius: 6px;
-                    padding: 10px 12px;
-                    font-size: 10px;
-                    color: #c9d1d9;
-                    min-width: 140px;
-                    backdrop-filter: blur(4px);
-                }
-
-                .tcc-map-legend .leg-title {
-                    font-size: 9px;
-                    font-weight: 700;
-                    text-transform: uppercase;
-                    letter-spacing: 0.6px;
-                    color: #8b949e;
-                    margin-bottom: 7px;
-                }
-
-                .tcc-leg-row {
-                    display: flex;
-                    align-items: center;
-                    gap: 7px;
-                    margin-bottom: 5px;
-                }
-
-                .tcc-leg-dot {
-                    width: 9px;
-                    height: 9px;
-                    border-radius: 50%;
-                    flex-shrink: 0;
-                }
-
-                .tcc-leg-line {
-                    width: 18px;
-                    height: 2px;
-                    flex-shrink: 0;
-                }
-
-                .tcc-leg-dashed {
-                    border-top: 2px dashed;
-                    width: 18px;
-                    flex-shrink: 0;
+                    backdrop-filter: blur(6px);
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
                 }
 
                 .tcc-clear-btn {
@@ -1374,701 +2337,411 @@
                     bottom: 12px;
                     right: 12px;
                     z-index: 1000;
-                    background: rgba(22, 27, 34, 0.92);
+                    background: #21262d;
                     border: 1px solid #30363d;
-                    color: #8b949e;
-                    padding: 5px 10px;
-                    border-radius: 5px;
+                    color: #c9d1d9;
+                    padding: 6px 12px;
+                    border-radius: 6px;
                     font-size: 11px;
                     font-weight: 600;
                     cursor: pointer;
-                    transition: border-color 0.2s, color 0.2s;
-                    backdrop-filter: blur(4px);
+                    transition: all 0.2s;
                 }
 
                 .tcc-clear-btn:hover {
-                    border-color: #58a6ff;
-                    color: #58a6ff;
+                    border-color: #f85149;
+                    color: #f85149;
+                    background: rgba(248, 81, 73, 0.05);
                 }
 
-                /* ── BOTTOM PANELS ───────────────────────────────────────────────── */
-                .tcc-analytics-panel {
+                /* ── BOTTOM DISPATCH & INVENTORY BLOCKS ────────────────────────── */
+                .tcc-bottom-panel {
                     border-right: 1px solid #30363d;
-                    padding: 14px 16px;
+                    padding: 16px;
                     overflow-y: auto;
                     display: flex;
                     flex-direction: column;
                     gap: 12px;
+                    max-height: 400px;
                 }
 
-                .tcc-metric-grid {
+                .tcc-inventory-grid {
                     display: grid;
-                    grid-template-columns: 1fr 1fr 1fr;
-                    gap: 8px;
+                    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+                    gap: 6px;
+                    margin-top: 4px;
                 }
 
-                .tcc-metric-box {
+                .tcc-inv-card {
                     background: #161b22;
                     border: 1px solid #30363d;
                     border-radius: 6px;
-                    padding: 10px 12px;
-                    text-align: center;
-                }
-
-                .tcc-metric-val {
-                    font-size: 20px;
-                    font-weight: 800;
-                    color: #e6edf3;
-                    line-height: 1.1;
-                }
-
-                .tcc-metric-lbl {
-                    font-size: 9px;
-                    text-transform: uppercase;
-                    letter-spacing: 0.5px;
-                    color: #8b949e;
-                    margin-top: 3px;
-                }
-
-                .tcc-eta-bar-wrap {
+                    padding: 8px 10px;
                     display: flex;
-                    flex-direction: column;
-                    gap: 6px;
-                }
-
-                .tcc-eta-row {
-                    display: flex;
+                    justify-content: space-between;
                     align-items: center;
-                    gap: 8px;
-                    font-size: 11px;
                 }
 
-                .tcc-eta-label {
-                    width: 150px;
-                    color: #c9d1d9;
+                .tcc-inv-lbl {
+                    font-size: 11px;
+                    color: #8b949e;
+                    text-overflow: ellipsis;
                     white-space: nowrap;
                     overflow: hidden;
-                    text-overflow: ellipsis;
-                    flex-shrink: 0;
                 }
 
-                .tcc-eta-track {
-                    flex: 1;
-                    height: 5px;
-                    background: #21262d;
-                    border-radius: 3px;
-                    overflow: hidden;
-                }
-
-                .tcc-eta-fill {
-                    height: 100%;
-                    border-radius: 3px;
-                    transition: width 0.6s;
-                }
-
-                .tcc-eta-time {
-                    width: 52px;
-                    text-align: right;
-                    font-size: 10px;
+                .tcc-inv-val {
+                    font-size: 12px;
                     font-weight: 700;
                     color: #58a6ff;
-                    flex-shrink: 0;
                 }
 
-                .tcc-reports-panel {
-                    padding: 14px 16px;
-                    overflow-y: auto;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 8px;
-                }
-
-                .tcc-report-row {
+                .tcc-report-card {
                     background: #161b22;
                     border: 1px solid #30363d;
                     border-radius: 6px;
-                    padding: 9px 12px;
+                    padding: 12px;
+                    margin-bottom: 8px;
                     display: flex;
-                    align-items: center;
-                    gap: 10px;
-                    transition: border-color 0.2s;
+                    justify-content: space-between;
+                    align-items: flex-start;
+                    gap: 12px;
                 }
 
-                .tcc-report-row:hover {
-                    border-color: #444d56;
-                }
-
-                .tcc-report-row.completing {
-                    animation: tccFadeOut 0.4s forwards;
-                }
-
-                @keyframes tccFadeOut {
-                    to {
-                        opacity: 0;
-                        transform: translateX(20px);
-                        max-height: 0;
-                        padding: 0;
-                        margin: 0;
-                        overflow: hidden;
-                    }
-                }
-
-                .tcc-rr-info {
+                .tcc-rc-content {
                     flex: 1;
-                    min-width: 0;
                 }
 
-                .tcc-rr-title {
-                    font-size: 12px;
-                    font-weight: 600;
+                .tcc-rc-title {
+                    font-size: 13px;
+                    font-weight: 700;
                     color: #e6edf3;
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
                 }
 
-                .tcc-rr-meta {
-                    font-size: 10px;
+                .tcc-rc-loc {
+                    font-size: 11px;
                     color: #8b949e;
                     margin-top: 2px;
                 }
 
-                .tcc-rr-pill {
-                    font-size: 9px;
-                    font-weight: 700;
-                    padding: 2px 6px;
-                    border-radius: 4px;
-                    text-transform: uppercase;
-                    flex-shrink: 0;
-                }
-
-                .tcc-rr-high {
-                    background: rgba(248, 81, 73, 0.15);
-                    color: #f85149;
-                }
-
-                .tcc-rr-mid {
-                    background: rgba(210, 153, 34, 0.15);
-                    color: #d29922;
-                }
-
-                .tcc-rr-low {
-                    background: rgba(88, 166, 255, 0.15);
+                .tcc-rc-dist {
+                    font-size: 11px;
                     color: #58a6ff;
-                }
-
-                .tcc-complete-btn {
-                    background: rgba(63, 185, 80, 0.12);
-                    border: 1px solid rgba(63, 185, 80, 0.3);
-                    color: #3fb950;
-                    font-size: 10px;
-                    font-weight: 700;
-                    padding: 4px 9px;
-                    border-radius: 5px;
-                    cursor: pointer;
-                    white-space: nowrap;
-                    flex-shrink: 0;
-                    transition: background 0.2s;
-                }
-
-                .tcc-complete-btn:hover {
-                    background: rgba(63, 185, 80, 0.25);
-                }
-
-                .tcc-complete-btn:disabled {
-                    opacity: 0.4;
-                    cursor: not-allowed;
+                    font-weight: 600;
+                    margin-top: 4px;
                 }
 
                 .tcc-empty-msg {
-                    padding: 20px;
+                    padding: 30px;
                     text-align: center;
                     color: #8b949e;
+                    font-size: 12px;
+                    font-style: italic;
+                }
+
+                /* ── LEAFLET CUSTOM MARKERS ────────────────────────────────────── */
+                .tcc-map-badge {
+                    background: #161b22;
+                    border: 2px solid #3fb950;
+                    border-radius: 6px;
+                    padding: 4px 8px;
                     font-size: 11px;
+                    font-weight: 700;
+                    color: #3fb950;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+                    white-space: nowrap;
                 }
 
-                /* ── LEAFLET PULSING SEVERITY PINS ───────────────────────────────── */
-                .tcc-ping-outer {
-                    position: relative;
-                    width: 14px;
-                    height: 14px;
+                .tcc-incident-marker {
+                    width: 12px;
+                    height: 12px;
                     border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-
-                .tcc-ping-core {
-                    width: 10px;
-                    height: 10px;
-                    border-radius: 50%;
-                    border: 1.5px solid #fff;
-                    box-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
-                }
-
-                .tcc-ping-ring {
-                    position: absolute;
-                    width: 100%;
-                    height: 100%;
-                    border-radius: 50%;
-                    animation: tccPing 2s infinite ease-out;
-                    opacity: 0;
-                }
-
-                @keyframes tccPing {
-                    0% {
-                        transform: scale(0.6);
-                        opacity: 0.8;
-                    }
-
-                    100% {
-                        transform: scale(3);
-                        opacity: 0;
-                    }
+                    background: #f85149;
+                    border: 2px solid #fff;
+                    box-shadow: 0 0 6px #f85149;
                 }
             </style>
 
             <div class="tcc-top-row">
+                <!-- Sidebar Stations View -->
                 <div class="tcc-station-panel">
                     <div class="tcc-panel-header">
-                        <span class="tcc-panel-title">Police Stations</span>
-                        <span class="tcc-count-badge" id="tccStationCount">0 stations</span>
+                        <span class="tcc-panel-title">Active Jurisdictions</span>
+                        <span class="tcc-count-badge" id="tccStationCount">0 Units</span>
                     </div>
                     <div class="tcc-station-scroll" id="tccStationsList">
-                        <div class="tcc-empty-msg">Loading station telemetry…</div>
+                        <div class="tcc-empty-msg">Fetching active incident matrices…</div>
                     </div>
                 </div>
 
+                <!-- Live Vector Map Workspace -->
                 <div class="tcc-map-area">
                     <div id="tccMap"></div>
-
                     <div class="tcc-map-overlay">
-                        <div class="tcc-map-info-pill" id="tccMapStatus">Select a station unit to evaluate paths</div>
-                    </div>
-
-                    <div class="tcc-map-legend">
-                        <div class="leg-title">Legend</div>
-                        <div class="tcc-leg-row">
-                            <div class="tcc-leg-dot" style="background:#3fb950;"></div> Police Station
-                        </div>
-                        <div class="tcc-leg-row">
-                            <div class="tcc-leg-dot" style="background:#f85149;"></div> High Severity
-                        </div>
-                        <div class="tcc-leg-row">
-                            <div class="tcc-leg-dot" style="background:#d29922;"></div> Mid Severity
-                        </div>
-                        <div class="tcc-leg-row">
-                            <div class="tcc-leg-dot" style="background:#58a6ff;"></div> Low Severity
-                        </div>
-                        <div class="tcc-leg-row">
-                            <div class="tcc-leg-dashed" style="border-color:#58a6ff;"></div> Intercept Path
+                        <div class="tcc-map-info-pill" id="tccMapStatus">Select a station to map live routing geometries
                         </div>
                     </div>
-
-                    <button class="tcc-clear-btn" id="tccClearPath">✕ Clear Path</button>
+                    <button class="tcc-clear-btn" id="tccClearMap">✕ Clear Vector Paths</button>
                 </div>
             </div>
 
             <div class="tcc-bottom-row">
-                <div class="tcc-analytics-panel">
+                <!-- Live Logistics & Resource Counts -->
+                <div class="tcc-bottom-panel" style="border-right: 1px solid #30363d;">
                     <div class="tcc-panel-header"
                         style="padding: 0 0 8px 0; background: transparent; border-bottom: 1px solid #30363d;">
-                        <span class="tcc-panel-title">Resolution Analytics</span>
-                        <span class="tcc-count-badge" id="tccAnalyticsSubtitle">Live telemetry</span>
+                        <span class="tcc-panel-title">Station Local Inventory Matrix</span>
                     </div>
-
-                    <div class="tcc-metric-grid" id="tccMetricGrid">
-                        <div class="tcc-metric-box">
-                            <div class="tcc-metric-val" id="tccMetricTotal">0</div>
-                            <div class="tcc-metric-lbl">Active Incidents</div>
-                        </div>
-                        <div class="tcc-metric-box">
-                            <div class="tcc-metric-val" id="tccMetricAvgEta" style="color:#d29922;">--</div>
-                            <div class="tcc-metric-lbl">Avg ETA (mins)</div>
-                        </div>
-                        <div class="tcc-metric-box">
-                            <div class="tcc-metric-val" id="tccMetricHigh" style="color:#f85149;">0</div>
-                            <div class="tcc-metric-lbl">High Priority</div>
-                        </div>
-                    </div>
-
-                    <div class="tcc-eta-bar-wrap" id="tccEtaBars">
-                        <div class="tcc-empty-msg" style="padding:4px;">No incidents discovered.</div>
+                    <div id="tccInventoryContainer" class="tcc-inventory-grid">
+                        <div class="tcc-empty-msg" style="padding: 15px; grid-column: 1/-1;">Select an active station to
+                            review inventory telemetry.</div>
                     </div>
                 </div>
 
-                <div class="tcc-reports-panel">
+                <!-- Dispatched Reports Summary -->
+                <div class="tcc-bottom-panel">
                     <div class="tcc-panel-header"
-                        style="padding: 0 0 8px 0; background: transparent; border-bottom: 1px solid #30363d; flex-shrink: 0;">
-                        <span class="tcc-panel-title">Assigned Reports Matrix</span>
-                        <span class="tcc-count-badge" id="tccReportCount">0 assigned</span>
+                        style="padding: 0 0 8px 0; background: transparent; border-bottom: 1px solid #30363d;">
+                        <span class="tcc-panel-title">Active Dispatches & Enroute Tracks</span>
                     </div>
-                    <div id="tccReportsList">
-                        <div class="tcc-empty-msg">No operational records generated.</div>
+                    <div id="tccDispatchesContainer">
+                        <div class="tcc-empty-msg" style="padding: 15px;">Select an active station to track localized
+                            emergency runs.</div>
                     </div>
                 </div>
             </div>
 
             <script>
                 (function () {
-                    // ── MOCK SYSTEM DATA BACKUPS ────────────────────────────────────
-                    const MOCK_STATIONS = [
-                        { id: "PS001", name: "Koramangala PS", lat: 12.9352, lng: 77.6245, officers: 12 },
-                        { id: "PS002", name: "Indiranagar PS", lat: 12.9784, lng: 77.6408, officers: 9 },
-                        { id: "PS003", name: "Whitefield PS", lat: 12.9698, lng: 77.7499, officers: 15 },
-                        { id: "PS004", name: "Hebbal PS", lat: 13.0358, lng: 77.5970, officers: 8 },
-                        { id: "PS005", name: "Banashankari PS", lat: 12.9260, lng: 77.5460, officers: 11 },
-                    ];
+                    // Core States
+                    let map = null;
+                    let layers = { stations: null, incidents: null, routes: null };
+                    let rawAssignments = [];
+                    let groupedStations = {};
+                    let selectedStationName = null;
 
-                    const MOCK_REPORTS = [
-                        { id: "INC-001", location_name: "Silk Board Junction", lat: 12.9172, lng: 77.6229, priority: "HIGH", issue_type: "Severe Congestion", minutes_ago: 3, assigned_station: "PS001", description: "Multi-vehicle pile-up blocking all lanes." },
-                        { id: "INC-002", location_name: "Marathahalli Bridge", lat: 12.9560, lng: 77.7009, priority: "HIGH", issue_type: "Accident", minutes_ago: 11, assigned_station: "PS003", description: "Two-vehicle collision." },
-                        { id: "INC-003", location_name: "KR Puram Signal", lat: 13.0002, lng: 77.6960, priority: "MID", issue_type: "Signal Failure", minutes_ago: 25, assigned_station: "PS002", description: "Traffic signal malfunctioning." },
-                        { id: "INC-004", location_name: "Hebbal Flyover", lat: 13.0358, lng: 77.5970, priority: "MID", issue_type: "Road Work", minutes_ago: 40, assigned_station: "PS004", description: "BBMP pothole repair work." },
-                        { id: "INC-005", location_name: "Koramangala 5th Block", lat: 12.9352, lng: 77.6245, priority: "LOW", issue_type: "Minor Congestion", minutes_ago: 18, assigned_station: "PS001", description: "Peak-hour buildup." },
-                    ];
+                    // Initialize Layout and Map Canvas
+                    function initTccModule() {
+                        if (map) return;
 
-                    // ── STATE REFERENCES ────────────────────────────────────────────
-                    let tccMap = null;
-                    let stationLayerGroup = null;
-                    let incidentLayerGroup = null;
-                    let pathLayerGroup = null;
-                    let selectedStationId = null;
+                        map = L.map('tccMap', { attributionControl: false }).setView([12.9716, 77.5946], 11);
+                        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 20 }).addTo(map);
 
-                    // Control keys to prevent performance throttling loops
-                    let mapsRenderedOnce = false;
+                        layers.stations = L.layerGroup().addTo(map);
+                        layers.incidents = L.layerGroup().addTo(map);
+                        layers.routes = L.layerGroup().addTo(map);
 
-                    function getStations() {
-                        const s = window.appState?.policeStations || window.appState?.stations;
-                        return (s && s.length > 0) ? s : MOCK_STATIONS;
+                        document.getElementById('tccClearMap').addEventListener('click', clearMapSelection);
+
+                        fetchAssignmentsTelemetry();
                     }
 
-                    function getReports() {
-                        const r = window.appState?.reports || window.appState?.incidents;
-                        return (r && r.length > 0) ? r : MOCK_REPORTS;
+                    // Fetch structural runtime assignments payload from /api/assignments
+                    function fetchAssignmentsTelemetry() {
+                        fetch('/api/assignments?city=Bangalore')
+                            .then(res => {
+                                if (!res.ok) throw new Error("Telemetry route unavailable");
+                                return res.json();
+                            })
+                            .then(data => {
+                                rawAssignments = data.assignments || [];
+                                processAssignmentsPayload(rawAssignments);
+                            })
+                            .catch(err => {
+                                console.error("Critical tracking infrastructure error:", err);
+                                document.getElementById('tccStationsList').innerHTML =
+                                    `<div class="tcc-empty-msg" style="color:#f85149;">Error connecting to live assignment servers.</div>`;
+                            });
                     }
 
-                    // ── MAP WORKSPACE INITIALIZATION ────────────────────────────────
-                    function initTccMap() {
-                        if (tccMap) return;
-                        tccMap = L.map('tccMap', { attributionControl: false, zoomControl: true }).setView([12.9716, 77.5946], 12);
-                        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 20 }).addTo(tccMap);
+                    // Group core object layers by managing Station Name 
+                    function processAssignmentsPayload(assignments) {
+                        groupedStations = {};
 
-                        stationLayerGroup = L.layerGroup().addTo(tccMap);
-                        incidentLayerGroup = L.layerGroup().addTo(tccMap);
-                        pathLayerGroup = L.layerGroup().addTo(tccMap);
+                        assignments.forEach(item => {
+                            const sName = item.assignment.station_name || "Unknown Jurisdiction";
 
-                        document.getElementById('tccClearPath').addEventListener('click', clearPath);
+                            if (!groupedStations[sName]) {
+                                groupedStations[sName] = {
+                                    name: sName,
+                                    coordinates: item.assignment.station_coordinates,
+                                    inventory: item.scheduling?.station_local_inventory || {},
+                                    dispatches: []
+                                };
+                            }
 
-                        // Render markers securely once on system load
+                            groupedStations[sName].dispatches.push({
+                                report_id: item.report_id,
+                                issue_type: item.issue_type,
+                                location_name: item.location_name,
+                                distance_km: item.assignment.distance_km,
+                                polyline: item.assignment.route_polyline,
+                                coordinates: item.coordinates
+                            });
+                        });
+
+                        renderStationsList();
                         renderMapMarkers();
-
-                        // Adjust bounds to map context
-                        setTimeout(() => { tccMap.invalidateSize(); }, 350);
                     }
 
-                    function renderMapMarkers() {
-                        if (mapsRenderedOnce) return; // Prevent loop pollution
+                    // Render Sidebar Stations View
+                    function renderStationsList() {
+                        const list = document.getElementById('tccStationsList');
+                        const countBadge = document.getElementById('tccStationCount');
+                        const stationKeys = Object.keys(groupedStations);
 
-                        stationLayerGroup.clearLayers();
-                        incidentLayerGroup.clearLayers();
-
-                        const stations = getStations();
-                        const reports = getReports();
-
-                        // Add Station Badges
-                        stations.forEach(s => {
-                            const shortName = s.name ? s.name.split(' ')[0] : 'PS';
-                            const icon = L.divIcon({
-                                className: '',
-                                html: `<div style="background:#161b22; border:2px solid #3fb950; border-radius:6px; padding:3px 5px; font-size:11px; font-weight:700; color:#3fb950; box-shadow:0 0 8px rgba(63,185,80,0.35); white-space:nowrap;">🛡️ ${shortName}</div>`,
-                                iconAnchor: [0, 0]
-                            });
-                            const m = L.marker([s.lat, s.lng], { icon });
-                            m.bindTooltip(`<b>${s.name || 'Station Unit'}</b><br>Officers: ${s.officers ?? s.available_officers ?? '–'}`, { direction: 'top' });
-                            m.on('click', () => selectStation(s.id));
-                            stationLayerGroup.addLayer(m);
-                        });
-
-                        // Add Incident Pins
-                        reports.forEach(r => {
-                            const color = getSeverityColor(r.priority);
-                            const icon = L.divIcon({
-                                className: '',
-                                html: `<div class="tcc-ping-outer"><div class="tcc-ping-ring" style="background:${color};"></div><div class="tcc-ping-core" style="background:${color};"></div></div>`,
-                                iconSize: [14, 14],
-                                iconAnchor: [7, 7]
-                            });
-                            const m = L.marker([r.lat, r.lng], { icon });
-                            m.bindTooltip(`<b>${r.location_name || 'Reported Node'}</b><br>${r.issue_type || 'Incident'}<br><span style="color:${color};font-weight:700">${r.priority}</span>`, { direction: 'top' });
-                            incidentLayerGroup.addLayer(m);
-                        });
-
-                        mapsRenderedOnce = true;
-                    }
-
-                    // ── STATION SELECTION & INTERCEPT VECTORS ───────────────────────
-                    function selectStation(id) {
-                        selectedStationId = id;
-                        renderStationList();
-
-                        const stations = getStations();
-                        const reports = getReports();
-                        const station = stations.find(s => s.id === id);
-                        if (!station) return;
-
-                        tccMap.flyTo([station.lat, station.lng], 13, { animate: true, duration: 0.8 });
-
-                        pathLayerGroup.clearLayers();
-                        const assigned = reports.filter(r => r.assigned_station === id || r.station_id === id);
-
-                        if (assigned.length === 0) {
-                            setMapStatus(`${station.name} — No active intercept dispatches`);
+                        if (countBadge) countBadge.textContent = `${stationKeys.length} Station${stationKeys.length !== 1 ? 's' : ''}`;
+                        if (stationKeys.length === 0) {
+                            list.innerHTML = '<div class="tcc-empty-msg">No active assignments reported in city parameters.</div>';
                             return;
                         }
 
-                        setMapStatus(`${station.name} — ${assigned.length} path vector${assigned.length > 1 ? 's' : ''} running`);
+                        let html = '';
+                        stationKeys.forEach(key => {
+                            const st = groupedStations[key];
+                            const activeCount = st.dispatches.length;
+                            const isSelected = key === selectedStationName ? 'selected' : '';
 
-                        assigned.forEach(r => {
-                            const color = getSeverityColor(r.priority);
-                            const line = L.polyline([[station.lat, station.lng], [r.lat, r.lng]], {
-                                color: '#58a6ff', weight: 2.5, dashArray: '7 5', opacity: 0.8
-                            });
-                            const endDot = L.circleMarker([r.lat, r.lng], {
-                                radius: 6, fillColor: color, color: '#fff', weight: 1.5, fillOpacity: 1
-                            });
-                            endDot.bindTooltip(`<b>${r.location_name}</b><br>${r.issue_type}`, { direction: 'top' });
-                            endDot.on('click', () => traceOnePath(station, r));
-                            pathLayerGroup.addLayer(line);
-                            pathLayerGroup.addLayer(endDot);
+                            html += `
+                        <div class="tcc-station-card ${isSelected}" onclick="window.tccSelectStation('${encodeURIComponent(key)}')">
+                            <div class="tcc-s-top">
+                                <span class="tcc-s-name">🛡️ ${st.name}</span>
+                                <span class="tcc-inc-indicator">${activeCount} Run${activeCount !== 1 ? 's' : ''}</span>
+                            </div>
+                            <div class="tcc-s-meta">
+                                Coordinates: <strong>${st.coordinates?.lat?.toFixed(4)}, ${st.coordinates?.lng?.toFixed(4)}</strong>
+                            </div>
+                        </div>
+                    `;
                         });
-
-                        const allLatLngs = [[station.lat, station.lng], ...assigned.map(r => [r.lat, r.lng])];
-                        tccMap.fitBounds(L.latLngBounds(allLatLngs), { padding: [40, 40] });
+                        list.innerHTML = html;
                     }
 
-                    function traceOnePath(station, report) {
-                        pathLayerGroup.clearLayers();
-                        const color = getSeverityColor(report.priority);
+                    // Draw Persistent Base Map Layer Tokens
+                    function renderMapMarkers() {
+                        layers.stations.clearLayers();
+                        layers.incidents.clearLayers();
 
-                        const line = L.polyline([[station.lat, station.lng], [report.lat, report.lng]], {
-                            color: '#58a6ff', weight: 3.5, dashArray: '8 5', opacity: 0.95
+                        Object.keys(groupedStations).forEach(key => {
+                            const st = groupedStations[key];
+                            if (!st.coordinates?.lat || !st.coordinates?.lng) return;
+
+                            // Station Pins
+                            const stationIcon = L.divIcon({
+                                className: '',
+                                html: `<div class="tcc-map-badge">🛡️ ${st.name}</div>`,
+                                iconAnchor: [50, 12]
+                            });
+                            const sm = L.marker([st.coordinates.lat, st.coordinates.lng], { icon: stationIcon });
+                            sm.on('click', () => window.tccSelectStation(encodeURIComponent(key)));
+                            layers.stations.addLayer(sm);
+
+                            // Assigned Emergency Incident Pins
+                            st.dispatches.forEach(disp => {
+                                if (!disp.coordinates?.lat || !disp.coordinates?.lng) return;
+
+                                const incIcon = L.divIcon({
+                                    className: '',
+                                    html: `<div class="tcc-incident-marker"></div>`,
+                                    iconSize: [12, 12],
+                                    iconAnchor: [6, 6]
+                                });
+                                const im = L.marker([disp.coordinates.lat, disp.coordinates.lng], { icon: incIcon });
+                                im.bindTooltip(`<b>${disp.issue_type}</b><br>${disp.location_name}`, { direction: 'top' });
+                                layers.incidents.addLayer(im);
+                            });
                         });
-
-                        const startDot = L.circleMarker([station.lat, station.lng], {
-                            radius: 7, fillColor: '#3fb950', color: '#fff', weight: 2, fillOpacity: 1
-                        });
-                        const endDot = L.circleMarker([report.lat, report.lng], {
-                            radius: 7, fillColor: color, color: '#fff', weight: 2, fillOpacity: 1
-                        });
-
-                        pathLayerGroup.addLayer(line);
-                        pathLayerGroup.addLayer(startDot);
-                        pathLayerGroup.addLayer(endDot);
-
-                        setMapStatus(`Vector Trace: ${station.name} → ${report.location_name}`);
-                        tccMap.fitBounds(L.latLngBounds([[station.lat, station.lng], [report.lat, report.lng]]), { padding: [60, 60] });
                     }
 
-                    window.tccPlotInterceptPath = function (stationId, reportId) {
-                        const station = getStations().find(s => s.id === stationId);
-                        const report = getReports().find(r => r.id === reportId);
-                        if (station && report) traceOnePath(station, report);
+                    // Select Station View & Draw `route_polyline` Trajectories
+                    window.tccSelectStation = function (escapedKey) {
+                        const key = decodeURIComponent(escapedKey);
+                        selectedStationName = key;
+
+                        renderStationsList();
+                        layers.routes.clearLayers();
+
+                        const st = groupedStations[key];
+                        if (!st) return;
+
+                        // Update Analytics Matrices UI
+                        document.getElementById('tccMapStatus').innerHTML = `Tracking Layout Matrix: <b>${st.name}</b>`;
+
+                        // Render Inventory Telemetry Block
+                        const invContainer = document.getElementById('tccInventoryContainer');
+                        if (invContainer) {
+                            const items = Object.entries(st.inventory);
+                            if (items.length === 0) {
+                                invContainer.innerHTML = '<div class="tcc-empty-msg" style="grid-column:1/-1;">No internal inventory tracking data.</div>';
+                            } else {
+                                invContainer.innerHTML = items.map(([itemKey, val]) => `
+                            <div class="tcc-inv-card">
+                                <span class="tcc-inv-lbl" title="${itemKey}">${itemKey}</span>
+                                <span class="tcc-inv-val">${val}</span>
+                            </div>
+                        `).join('');
+                            }
+                        }
+
+                        // Render Reports Block
+                        const dispContainer = document.getElementById('tccDispatchesContainer');
+                        if (dispContainer) {
+                            if (st.dispatches.length === 0) {
+                                dispContainer.innerHTML = '<div class="tcc-empty-msg">No dispatches bound to node.</div>';
+                            } else {
+                                dispContainer.innerHTML = st.dispatches.map(disp => `
+                            <div class="tcc-report-card">
+                                <div class="tcc-rc-content">
+                                    <div class="tcc-rc-title">🚨 ${disp.issue_type} (ID: ${disp.report_id})</div>
+                                    <div class="tcc-rc-loc">Location: ${disp.location_name}</div>
+                                    <div class="tcc-rc-dist">Target Range: ${disp.distance_km} KM</div>
+                                </div>
+                            </div>
+                        `).join('');
+                            }
+                        }
+
+                        // Draw Real Polylines Map Routes
+                        let bounds = [];
+                        st.dispatches.forEach(disp => {
+                            if (disp.polyline && Array.isArray(disp.polyline) && disp.polyline.length > 0) {
+                                const routeLine = L.polyline(disp.polyline, {
+                                    color: '#58a6ff',
+                                    weight: 4,
+                                    opacity: 0.85,
+                                    lineJoin: 'round'
+                                });
+                                layers.routes.addLayer(routeLine);
+                                bounds.push(disp.polyline);
+                            } else if (st.coordinates && disp.coordinates) {
+                                // Direct straight vector fallback if api structure has empty line arrays
+                                const fallbackLine = L.polyline([
+                                    [st.coordinates.lat, st.coordinates.lng],
+                                    [disp.coordinates.lat, disp.coordinates.lng]
+                                ], { color: '#f85149', weight: 2, dashArray: '6, 6', opacity: 0.6 });
+                                layers.routes.addLayer(fallbackLine);
+                            }
+                        });
+
+                        if (bounds.length > 0) {
+                            map.fitBounds(L.polyline(bounds).getBounds(), { padding: [50, 50], maxZoom: 14 });
+                        } else if (st.coordinates) {
+                            map.flyTo([st.coordinates.lat, st.coordinates.lng], 13);
+                        }
                     };
 
-                    function clearPath() {
-                        pathLayerGroup.clearLayers();
-                        setMapStatus('Path vectors cleared');
-                        selectedStationId = null;
-                        renderStationList();
+                    function clearMapSelection() {
+                        selectedStationName = null;
+                        layers.routes.clearLayers();
+                        renderStationsList();
+                        document.getElementById('tccMapStatus').textContent = 'Select a station to map live routing geometries';
+                        document.getElementById('tccInventoryContainer').innerHTML = '<div class="tcc-empty-msg" style="padding:15px; grid-column:1/-1;">Select an active station to review inventory telemetry.</div>';
+                        document.getElementById('tccDispatchesContainer').innerHTML = '<div class="tcc-empty-msg" style="padding:15px;">Select an active station to track localized emergency runs.</div>';
+                        map.setView([12.9716, 77.5946], 11);
                     }
 
-                    function setMapStatus(msg) {
-                        const el = document.getElementById('tccMapStatus');
-                        if (el) el.innerHTML = msg;
-                    }
-
-                    // ── STATION LIST RENDER (Safe from continuous construction loops) ──
-                    function renderStationList() {
-                        const stations = getStations();
-                        const reports = getReports();
-                        const list = document.getElementById('tccStationsList');
-                        const badge = document.getElementById('tccStationCount');
-                        if (!list) return;
-
-                        if (badge) badge.textContent = `${stations.length} station${stations.length !== 1 ? 's' : ''}`;
-                        if (stations.length === 0) {
-                            list.innerHTML = '<div class="tcc-empty-msg">No operational stations.</div>';
-                            return;
-                        }
-
-                        // Generate content string instead of modifying DOM node fragments aggressively
-                        let htmlContent = '';
-                        stations.forEach(s => {
-                            const assigned = reports.filter(r => r.assigned_station === s.id || r.station_id === s.id);
-                            const isBusy = assigned.length > 0;
-                            const isSelected = selectedStationId === s.id ? ' selected' : '';
-
-                            htmlContent += `
-            <div class="tcc-station-card${isSelected}" data-station-id="${s.id}">
-              <div class="tcc-s-top">
-                <span class="tcc-s-name">🛡️ ${s.name || 'Station Unit'}</span>
-                <span class="tcc-s-badge ${isBusy ? 'tcc-s-busy' : 'tcc-s-idle'}">${isBusy ? 'Deployed' : 'Idle'}</span>
-              </div>
-              <div class="tcc-s-meta">
-                <span>Officers: <strong>${s.officers ?? s.available_officers ?? '–'}</strong></span>
-                <span>Active: <strong>${assigned.length}</strong></span>
-              </div>
-            </div>
-          `;
-                        });
-
-                        list.innerHTML = htmlContent;
-
-                        // Apply clean interaction click handlers post-render
-                        list.querySelectorAll('.tcc-station-card').forEach(card => {
-                            card.addEventListener('click', () => {
-                                selectStation(card.dataset.stationId);
-                            });
-                        });
-                    }
-
-                    // ── ANALYTICS DATA BINDING ──────────────────────────────────────
-                    function renderAnalytics() {
-                        const reports = getReports();
-                        const total = reports.length;
-                        const high = reports.filter(r => String(r.priority).toUpperCase() === 'HIGH').length;
-
-                        const etaMap = { HIGH: 65, MID: 35, MEDIUM: 35, LOW: 20 };
-                        const etas = reports.map(r => {
-                            const base = etaMap[String(r.priority).toUpperCase()] || 20;
-                            return Math.max(5, base - Math.floor((r.minutes_ago || 0) * 0.3));
-                        });
-                        const avgEta = etas.length ? Math.round(etas.reduce((a, b) => a + b, 0) / etas.length) : 0;
-
-                        document.getElementById('tccMetricTotal').textContent = total;
-                        document.getElementById('tccMetricHigh').textContent = high;
-                        document.getElementById('tccMetricAvgEta').textContent = avgEta || '--';
-
-                        const barsEl = document.getElementById('tccEtaBars');
-                        if (!barsEl) return;
-
-                        if (reports.length === 0) {
-                            barsEl.innerHTML = '<div class="tcc-empty-msg" style="padding:4px;">No active vectors to map.</div>';
-                            return;
-                        }
-
-                        const sorted = reports.map((r, i) => ({ r, eta: etas[i] })).sort((a, b) => b.eta - a.eta);
-                        barsEl.innerHTML = '';
-                        sorted.slice(0, 3).forEach(({ r, eta }) => {
-                            const color = getSeverityColor(r.priority);
-                            const pct = Math.min(100, Math.max(10, Math.round((eta / 90) * 100)));
-                            const row = document.createElement('div');
-                            row.className = 'tcc-eta-row';
-                            row.innerHTML = `
-            <span class="tcc-eta-label" title="${r.location_name}">${r.location_name}</span>
-            <div class="tcc-eta-track"><div class="tcc-eta-fill" style="width:${pct}%; background:${color};"></div></div>
-            <span class="tcc-eta-time">~${eta}m</span>
-          `;
-                            barsEl.appendChild(row);
-                        });
-                    }
-
-                    // ── REPORT LIST DISPATCH MATRIX ──────────────────────────────────
-                    function renderReports() {
-                        const reports = getReports();
-                        const assigned = reports.filter(r => r.assigned_station);
-                        const listEl = document.getElementById('tccReportsList');
-                        const badge = document.getElementById('tccReportCount');
-                        if (!listEl) return;
-
-                        if (badge) badge.textContent = `${assigned.length} assigned`;
-                        if (assigned.length === 0) {
-                            listEl.innerHTML = '<div class="tcc-empty-msg">No active dispatches.</div>';
-                            return;
-                        }
-
-                        listEl.innerHTML = '';
-                        assigned.forEach(r => {
-                            const p = String(r.priority).toUpperCase();
-                            const cls = p === 'HIGH' ? 'tcc-rr-high' : p === 'MID' || p === 'MEDIUM' ? 'tcc-rr-mid' : 'tcc-rr-low';
-                            const row = document.createElement('div');
-                            row.className = 'tcc-report-row';
-                            row.innerHTML = `
-            <div class="tcc-rr-info">
-              <div class="tcc-rr-title">${r.location_name}</div>
-              <div class="tcc-rr-meta">${r.issue_type} · ${r.minutes_ago ?? 0}m ago</div>
-            </div>
-            <span class="tcc-rr-pill ${cls}">${r.priority}</span>
-            <button class="tcc-complete-btn">✓ Close</button>
-          `;
-                            row.querySelector('.tcc-complete-btn').addEventListener('click', (e) => {
-                                e.stopPropagation();
-                                completeReport(r.id, row);
-                            });
-                            listEl.appendChild(row);
-                        });
-                    }
-
-                    async function completeReport(id, rowEl) {
-                        const btn = rowEl.querySelector('.tcc-complete-btn');
-                        if (btn) { btn.disabled = true; btn.textContent = '…'; }
-
-                        try {
-                            const BASE_URL = window.BASE_URL || 'http://localhost:5001';
-                            await fetch(`${BASE_URL}/delete_report/${id}`, { method: 'DELETE' });
-                        } catch (err) {
-                            console.warn(`[TCC] Local-state cleanup fallback strategy initialized.`, err);
-                        }
-
-                        if (window.appState?.reports) window.appState.reports = window.appState.reports.filter(r => r.id !== id);
-                        if (window.appState?.incidents) window.appState.incidents = window.appState.incidents.filter(i => i.id !== id);
-
-                        const mockIdx = MOCK_REPORTS.findIndex(r => r.id === id);
-                        if (mockIdx !== -1) MOCK_REPORTS.splice(mockIdx, 1);
-
-                        rowEl.classList.add('completing');
-                        rowEl.addEventListener('animationend', () => { renderAllUIOnly(); }, { once: true });
-                    }
-
-                    function getSeverityColor(priority) {
-                        const p = String(priority).toUpperCase();
-                        if (p === 'HIGH') return '#f85149';
-                        if (p === 'MID' || p === 'MEDIUM') return '#d29922';
-                        return '#58a6ff';
-                    }
-
-                    function renderAllUIOnly() {
-                        renderStationList();
-                        renderAnalytics();
-                        renderReports();
-                    }
-
-                    // ── EXECUTION & BOOT STRAP ─────────────────────────────────────
-                    function boot() {
-                        if (typeof L === 'undefined') {
-                            setTimeout(boot, 200);
-                            return;
-                        }
-                        initTccMap();
-                        renderAllUIOnly();
-
-                        // Safe hook into global status handlers
-                        const originalNavbarCallback = window.updateNavbarCounters;
-                        window.updateNavbarCounters = function () {
-                            if (typeof originalNavbarCallback === 'function') originalNavbarCallback();
-                            renderAllUIOnly();
-                        };
-
-                        // UI list values evaluation (runs quietly without re-adding markers continuously)
-                        setInterval(renderAllUIOnly, 15000);
-                    }
-
-                    if (document.readyState === 'loading') {
-                        document.addEventListener('DOMContentLoaded', boot);
-                    } else {
-                        boot();
-                    }
+                    // Dynamic Runtime Hooks Execution
+                    setTimeout(initTccModule, 400);
                 })();
             </script>
         </div>
