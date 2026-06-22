@@ -229,7 +229,7 @@ def get_route_status():
     
     return jsonify({"incidents": results})
 
-@app.route("/get_ai_prediction", methods=["GET"])
+@app.route("/api/forcast-result", methods=["GET"])
 def get_ai_prediction():
     """
     USE CASE: Invokes the NGBoost + Gemini LLM model on FastAPI.
@@ -240,6 +240,13 @@ def get_ai_prediction():
     location = request.args.get("location", "Unknown Location")
     current_flow = request.args.get("flow", "heavy")
     weather = request.args.get("weather", "clear")
+
+    # Extract just the hostname (minus the port)
+    host_header = request.headers.get('Host') or '127.0.0.1'
+    hostname = host_header.split(':')[0]
+    
+    # Reconstruct it to force port 8000
+    FASTAPI_URL = f"http://{hostname}:8000"
 
     try:
         # Request data processing from FastAPI ML Engine
@@ -253,13 +260,20 @@ def get_ai_prediction():
         return jsonify({"error": f"Could not reach FastAPI AI Service: {str(e)}"}), 503
 
 
-@app.route("/get_traffic_analytics", methods=["GET"])
+@app.route("/api/analysis", methods=["GET"])
 def get_traffic_analytics():
     """
     USE CASE: Requests aggregated analytics metrics from FastAPI.
     Fetches complex analytical chart points (like peak congestion periods and distribution lists) 
     intended to be displayed on the officer dashboard.
     """
+    # Extract just the hostname (minus the port)
+    host_header = request.headers.get('Host') or '127.0.0.1'
+    hostname = host_header.split(':')[0]
+    
+    # Reconstruct it to force port 8000
+    FASTAPI_URL = f"http://{hostname}:8000"
+
     try:
         fastapi_response = requests.get(f"{FASTAPI_URL}/analytics", timeout=5)
         if fastapi_response.status_code == 200:
@@ -269,11 +283,18 @@ def get_traffic_analytics():
         return jsonify({"error": f"Analytics engine unreachable: {str(e)}"}), 503
 
 
-@app.route("/get_predictive_predictions_history", methods=["GET"])
+@app.route("/api/deployment-analysis", methods=["GET"])
 def get_predictive_predictions_history():
     """
     USE CASE: Fetches historical predictions logs stored inside FastAPI database infrastructure.
     """
+    # Extract just the hostname (minus the port)
+    host_header = request.headers.get('Host') or '127.0.0.1'
+    hostname = host_header.split(':')[0]
+    
+    # Reconstruct it to force port 8000
+    FASTAPI_URL = f"http://{hostname}:8000"
+
     try:
         fastapi_response = requests.get(f"{FASTAPI_URL}/api", timeout=5)
         if fastapi_response.status_code == 200:
