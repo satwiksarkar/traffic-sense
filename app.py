@@ -235,6 +235,26 @@ def get_ai_prediction():
     USE CASE: Invokes the NGBoost + Gemini LLM model on FastAPI.
     Passes traffic factors from Flask to FastAPI to predict incident severity levels 
     and fetch text descriptions of expected blockages.
+
+    EXPECTED RETURN JSON SIGNATURE:
+    {
+      "location": "string",
+      "predicted_cause": "string",
+      "predicted_priority": "string",
+      "severity_score": float,
+      "confidence": float,
+      "severity_lower": float,
+      "severity_upper": float,
+      "llm_severity": float | null,
+      "llm_summary": "string" | null,
+      "llm_recommendation": "string" | null,
+      "model_version": "ngboost-v1",
+      "status": "success"
+    }
+    OR (on error):
+    {
+      "error": "string"
+    }
     """
     # Grab query parameters sent from your frontend web map
     location = request.args.get("location", "Unknown Location")
@@ -266,6 +286,22 @@ def get_traffic_analytics():
     USE CASE: Requests aggregated analytics metrics from FastAPI.
     Fetches complex analytical chart points (like peak congestion periods and distribution lists) 
     intended to be displayed on the officer dashboard.
+
+    EXPECTED RETURN JSON SIGNATURE:
+    {
+      "total_incidents_month": int,
+      "avg_predicted_duration": float,
+      "most_affected_junction": "string",
+      "peak_hour": int,
+      "total_resolved": int,
+      "total_active": int,
+      "avg_severity_multiplier": float,
+      "total_officers_deployed": int
+    }
+    OR (on error):
+    {
+      "error": "string"
+    }
     """
     # Extract just the hostname (minus the port)
     host_header = request.headers.get('Host') or '127.0.0.1'
@@ -287,6 +323,22 @@ def get_traffic_analytics():
 def get_predictive_predictions_history():
     """
     USE CASE: Fetches historical predictions logs stored inside FastAPI database infrastructure.
+
+    EXPECTED RETURN JSON SIGNATURE:
+    {
+      "locations": [
+        {
+          "name": "string",
+          "lat": float,
+          "lng": float
+        }
+      ],
+      "count": int
+    }
+    OR (on error):
+    {
+      "error": "string"
+    }
     """
     # Extract just the hostname (minus the port)
     host_header = request.headers.get('Host') or '127.0.0.1'
