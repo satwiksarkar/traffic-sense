@@ -281,6 +281,32 @@ def get_predictive_predictions_history():
         return jsonify({"error": "Failed to load historical database array"}), fastapi_response.status_code
     except requests.exceptions.RequestException as e:
         return jsonify({"error": f"Database pipeline communication gap: {str(e)}"}), 503
-    
+
+@app.route("/api/hotspots", methods=["GET"])
+def get_hotspots():
+    import json
+    try:
+        path = os.path.join(ROOT_DIR, "backend", "data", "hotspots.json")
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return jsonify(data), 200
+        return jsonify([]), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/risk_table", methods=["GET"])
+def get_risk_table():
+    import json
+    try:
+        path = os.path.join(ROOT_DIR, "backend", "data", "risk_table.json")
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return jsonify(data), 200
+        return jsonify({}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001, debug=True)

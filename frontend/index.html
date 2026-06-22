@@ -2879,6 +2879,8 @@
     <button class="tab-btn" id="btnTabDeployment" onclick="window.switchTab('deployment')">📋 Deployment Plan</button>
     <button class="tab-btn" id="btnTabAnalytics" onclick="window.switchTab('analytics')">📊 Analytics</button>
     <button class="tab-btn" id="btnTabResources" onclick="window.switchTab('resources')">📦 Resources</button>
+    <button class="tab-btn" id="btnTabApi" onclick="window.switchTab('api')">📡 API Explorer</button>
+    <button class="tab-btn" id="btnTabDeploymentAnalysis" onclick="window.switchTab('deploymentAnalysis')">📈 Deployment Analysis</button>
   </nav>
 
   <!-- CONTAINER -->
@@ -3691,6 +3693,159 @@
 
   </div>
 
+  <!-- VIEW 6: API EXPLORER -->
+  <div class="view-pane" id="viewApi" style="display: none; padding: 20px; background: var(--bg); height: 100%; box-sizing: border-box;">
+    <div style="background: var(--bg-card, #1c2128); border: 1px solid var(--border, #30363d); border-radius: 8px; padding: 20px; height: 100%; box-sizing: border-box; display: flex; flex-direction: column;">
+      <h2 style="margin-top: 0; font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 8px;">📡 Operational API Console</h2>
+      <p style="color: var(--muted); font-size: 13px; margin-bottom: 20px;">Explore, inspect, and test the Bengaluru Civic Grid intelligence endpoint routing infrastructure.</p>
+
+      <div style="display: flex; gap: 20px; flex: 1; overflow: hidden;">
+        <!-- Left Sidebar: Endpoint list -->
+        <div style="width: 320px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 6px; display: flex; flex-direction: column; overflow: hidden;">
+          <div style="padding: 12px; border-bottom: 1px solid var(--border); font-weight: 700; font-size: 11px; text-transform: uppercase; color: var(--muted); letter-spacing: 0.5px;">Available Routes</div>
+          <div id="apiRouteList" style="flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 6px;">
+            <!-- Populate routes dynamically -->
+          </div>
+        </div>
+
+        <!-- Right Pane: Route Console -->
+        <div id="apiConsolePane" style="flex: 1; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 6px; display: flex; flex-direction: column; overflow: hidden; padding: 20px;">
+          <div id="apiConsoleEmpty" style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; color: var(--muted);">
+            <span style="font-size: 40px; margin-bottom: 12px;">⚡</span>
+            <div style="font-weight: 600; color: #fff;">Awaiting Endpoint Selection</div>
+            <div style="font-size: 12px; margin-top: 4px;">Choose an operational route from the left sidebar to execute requests.</div>
+          </div>
+          <div id="apiConsoleContent" style="display: none; flex-direction: column; height: 100%;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+              <span id="apiMethodBadge" style="font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 4px; color: #fff;">GET</span>
+              <span id="apiUrlText" style="font-family: monospace; font-size: 14px; font-weight: 600; color: #fff;">/api/route</span>
+            </div>
+            <div id="apiDescriptionText" style="font-size: 13px; color: var(--muted); margin-bottom: 15px; line-height: 1.4;">Route description here.</div>
+            
+            <!-- Query Params or Request Body input fields -->
+            <div id="apiParamsContainer" style="display: none; margin-bottom: 15px;">
+              <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">Parameters</div>
+              <div id="apiParamsList" style="display: flex; flex-direction: column; gap: 8px;"></div>
+            </div>
+
+            <!-- JSON Request Body Editor -->
+            <div id="apiBodyContainer" style="display: none; margin-bottom: 15px;">
+              <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">Request JSON Body</div>
+              <textarea id="apiBodyTextarea" style="width: 100%; height: 120px; background: #0d1117; border: 1px solid var(--border); border-radius: 6px; color: #fff; font-family: monospace; padding: 10px; font-size: 12px; resize: none;"></textarea>
+            </div>
+
+            <!-- Actions -->
+            <div style="margin-bottom: 20px;">
+              <button id="btnSendApiRequest" style="background: var(--blue); border: none; color: #fff; font-weight: 700; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 6px;">
+                🚀 Send Request
+              </button>
+            </div>
+
+            <!-- JSON Response -->
+            <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: 0.5px;">Response Console</span>
+                <span id="apiStatusBadge" style="font-size: 10px; font-weight: 800; font-family: monospace; color: var(--green-alt);"></span>
+              </div>
+              <pre id="apiResponseText" style="flex: 1; background: #0d1117; border: 1px solid var(--border); border-radius: 6px; padding: 12px; overflow: auto; font-family: monospace; font-size: 12px; color: #3fb950; margin: 0;"></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW 7: DEPLOYMENT ANALYSIS -->
+  <div class="view-pane" id="viewDeploymentAnalysis" style="display: none; padding: 20px; background: var(--bg); height: 100%; box-sizing: border-box; overflow-y: auto;">
+    <div style="background: var(--bg-card, #1c2128); border: 1px solid var(--border, #30363d); border-radius: 8px; padding: 20px; box-sizing: border-box;">
+      <h2 style="margin-top: 0; font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 8px;">📈 Deployment & Hotspot Risk Analytics</h2>
+      <p style="color: var(--muted); font-size: 13px; margin-bottom: 20px;">Deep analytics mapping historical congestion hotspots, spatial cluster boundaries, and causal risk scores over a 24-hour timeline.</p>
+
+      <div style="display: flex; flex-direction: column; gap: 20px;">
+        <!-- Top Row: Clustered hotspots map & table -->
+        <div style="display: flex; gap: 20px; height: 480px; flex-wrap: wrap;">
+          <!-- Map Card -->
+          <div style="flex: 1.2; min-width: 400px; height: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 6px; display: flex; flex-direction: column; overflow: hidden; position: relative;">
+            <div style="padding: 12px; border-bottom: 1px solid var(--border); font-weight: 700; font-size: 11px; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; align-items: center;">
+              <span>🗺️ Hotspot Spatial Clusters (hull mapping)</span>
+              <div style="display: flex; gap: 8px;">
+                <span style="font-size: 10px; color: #f85149; display: flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #f85149; display: inline-block;"></span>High</span>
+                <span style="font-size: 10px; color: #d29922; display: flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #d29922; display: inline-block;"></span>Medium</span>
+                <span style="font-size: 10px; color: #58a6ff; display: flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #58a6ff; display: inline-block;"></span>Low</span>
+              </div>
+            </div>
+            <div id="deploymentAnalysisMap" style="flex: 1; background: #0d1117; min-height: 300px;"></div>
+          </div>
+
+          <!-- List Table Card -->
+          <div style="flex: 1; min-width: 300px; height: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 6px; display: flex; flex-direction: column; overflow: hidden;">
+            <div style="padding: 12px; border-bottom: 1px solid var(--border); font-weight: 700; font-size: 11px; text-transform: uppercase; color: var(--muted);">Hotspot Inventory Table</div>
+            <div style="flex: 1; overflow-y: auto; padding: 10px;">
+              <table style="width: 100%; border-collapse: collapse; font-size: 11px; color: #fff;">
+                <thead>
+                  <tr style="border-bottom: 1px solid var(--border); color: var(--muted); text-align: left;">
+                    <th style="padding: 6px 4px;">ID</th>
+                    <th style="padding: 6px 4px;">Risk</th>
+                    <th style="padding: 6px 4px; text-align: right;">Incidents</th>
+                    <th style="padding: 6px 4px; text-align: right;">Avg Clearance</th>
+                    <th style="padding: 6px 4px; text-align: right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="hotspotsTableBody">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Row: Heatmap Risk Timeline Matrix -->
+        <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 6px; padding: 20px; display: flex; flex-direction: column; overflow: hidden;">
+          <h3 style="margin-top: 0; font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">📅 24-Hour Causal Risk Matrix</h3>
+          <p style="color: var(--muted); font-size: 11px; margin-bottom: 16px; margin-top: 0;">Hourly risk levels mapped by incident type. Cells are colored based on calculated risk weights (Red: High, Yellow/Orange: Medium, Blue: Low, Gray: None). Hover or click cells to drill down.</p>
+
+          <div style="overflow-x: auto; width: 100%;">
+            <div id="riskMatrixContainer" style="min-width: 900px; display: flex; flex-direction: column; gap: 2px;">
+              <!-- Header hour cells -->
+              <div style="display: flex; gap: 2px; margin-bottom: 4px;">
+                <div style="width: 150px; flex-shrink: 0; font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; text-align: right; padding-right: 12px; align-self: center;">Cause / Hour</div>
+                <div style="display: flex; flex: 1; justify-content: space-between; font-size: 9px; font-weight: 700; color: var(--muted); font-family: monospace;">
+                  <div style="width: calc(100% / 24); text-align: center;">00</div>
+                  <div style="width: calc(100% / 24); text-align: center;">01</div>
+                  <div style="width: calc(100% / 24); text-align: center;">02</div>
+                  <div style="width: calc(100% / 24); text-align: center;">03</div>
+                  <div style="width: calc(100% / 24); text-align: center;">04</div>
+                  <div style="width: calc(100% / 24); text-align: center;">05</div>
+                  <div style="width: calc(100% / 24); text-align: center;">06</div>
+                  <div style="width: calc(100% / 24); text-align: center;">07</div>
+                  <div style="width: calc(100% / 24); text-align: center;">08</div>
+                  <div style="width: calc(100% / 24); text-align: center;">09</div>
+                  <div style="width: calc(100% / 24); text-align: center;">10</div>
+                  <div style="width: calc(100% / 24); text-align: center;">11</div>
+                  <div style="width: calc(100% / 24); text-align: center;">12</div>
+                  <div style="width: calc(100% / 24); text-align: center;">13</div>
+                  <div style="width: calc(100% / 24); text-align: center;">14</div>
+                  <div style="width: calc(100% / 24); text-align: center;">15</div>
+                  <div style="width: calc(100% / 24); text-align: center;">16</div>
+                  <div style="width: calc(100% / 24); text-align: center;">17</div>
+                  <div style="width: calc(100% / 24); text-align: center;">18</div>
+                  <div style="width: calc(100% / 24); text-align: center;">19</div>
+                  <div style="width: calc(100% / 24); text-align: center;">20</div>
+                  <div style="width: calc(100% / 24); text-align: center;">21</div>
+                  <div style="width: calc(100% / 24); text-align: center;">22</div>
+                  <div style="width: calc(100% / 24); text-align: center;">23</div>
+                </div>
+              </div>
+              <div id="riskMatrixRows" style="display: flex; flex-direction: column; gap: 3px;"></div>
+            </div>
+          </div>
+
+          <div id="riskCellDetails" style="margin-top: 14px; background: #0d1117; border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-size: 11px; display: none;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 
   <!-- ADD RESOURCE MODAL -->
   <div id="addResourceModal" class="res-modal-overlay">
@@ -4453,8 +4608,8 @@
     // MULTI-TAB SWITCHER LOGIC
     // ────────────────────────────────────────────────────────────────────────────────────────────────────
     window.switchTab = function(tabName) {
-      const ids  = ['btnTabLiveMap','btnTabForecast','btnTabDeployment','btnTabAnalytics','btnTabResources'];
-      const vids = ['viewLiveMap','viewForecast','viewDeployment','viewAnalytics','viewResources'];
+      const ids  = ['btnTabLiveMap','btnTabForecast','btnTabDeployment','btnTabAnalytics','btnTabResources','btnTabApi','btnTabDeploymentAnalysis'];
+      const vids = ['viewLiveMap','viewForecast','viewDeployment','viewAnalytics','viewResources','viewApi','viewDeploymentAnalysis'];
       ids.forEach(id  => document.getElementById(id)?.classList.remove('active'));
       vids.forEach(id => document.getElementById(id)?.classList.remove('active'));
 
@@ -4486,6 +4641,16 @@
         document.getElementById('viewResources').classList.add('active');
         closeDrawer();
         refreshResourcesTab();
+      } else if (tabName === 'api') {
+        document.getElementById('btnTabApi').classList.add('active');
+        document.getElementById('viewApi').classList.add('active');
+        closeDrawer();
+        if (typeof window.initApiTab === 'function') window.initApiTab();
+      } else if (tabName === 'deploymentAnalysis') {
+        document.getElementById('btnTabDeploymentAnalysis').classList.add('active');
+        document.getElementById('viewDeploymentAnalysis').classList.add('active');
+        closeDrawer();
+        if (typeof window.initDeploymentAnalysisTab === 'function') window.initDeploymentAnalysisTab();
       }
     };
 
@@ -7471,6 +7636,516 @@
           });
       });
     });
+
+    // ── 5. OPERATIONAL API EXPLORER CONSOLE LOGIC ─────────────────────────
+    const FLASK_BASE_URL = window.location.origin.includes(':8000')
+        ? window.location.origin.replace(':8000', ':5001')
+        : (window.location.origin.includes(':5001') ? window.location.origin : 'http://127.0.0.1:5001');
+
+    const API_ROUTES = [
+        {
+            name: "GET /get_reports",
+            method: "GET",
+            url: "/get_reports",
+            description: "Fetch all active traffic incident reports currently in the database.",
+            params: []
+        },
+        {
+            name: "GET /get_news",
+            method: "GET",
+            url: "/get_news",
+            description: "Retrieve latest curated traffic news bulletins synced from media APIs.",
+            params: []
+        },
+        {
+            name: "GET /api/assignments",
+            method: "GET",
+            url: "/api/assignments",
+            description: "Generate dispatch routes and localized station inventory allocations for active incidents.",
+            params: [{ name: "city", type: "string", default: "Bangalore", description: "Target city name" }]
+        },
+        {
+            name: "GET /get_police_stations",
+            method: "GET",
+            url: "/get_police_stations",
+            description: "Retrieve names, coordinates, and asset profile limits for Bengaluru police stations.",
+            params: [{ name: "city", type: "string", default: "Bangalore", description: "Target city name" }]
+        },
+        {
+            name: "GET /get_route_status",
+            method: "GET",
+            url: "/get_route_status",
+            description: "Returns route status with full polyline geometries from station to incident coordinate.",
+            params: [{ name: "city", type: "string", default: "Bangalore", description: "Target city name" }]
+        },
+        {
+            name: "POST /predict/single",
+            method: "POST",
+            url: "/predict/single",
+            description: "Run severity prediction on a single traffic incident, returning predicted duration, severity multiplier, and resource allocation requirements.",
+            isFastApi: true,
+            body: {
+                latitude: 12.9172,
+                longitude: 77.6229,
+                address: "Silk Board Junction, Bengaluru",
+                junction: "Silk Board Junction",
+                event_cause: "water_logging",
+                priority: "High",
+                corridor: "Hosur Road",
+                zone: "South Zone",
+                description: "Deep water logging at the underpass, cars crawling"
+            }
+        },
+        {
+            name: "GET /predict/sample",
+            method: "GET",
+            url: "/predict/sample",
+            description: "Load predefined sample incident records populated on the Event Forecast dashboard.",
+            isFastApi: true,
+            params: []
+        },
+        {
+            name: "GET /predict/causes",
+            method: "GET",
+            url: "/predict/causes",
+            description: "List valid traffic blockage incident causes recognized by the NGBoost parsing engine.",
+            isFastApi: true,
+            params: []
+        },
+        {
+            name: "GET /api/locations",
+            method: "GET",
+            url: "/api/locations",
+            description: "List key Bengaluru traffic hotspot locations with their coordinates.",
+            isFastApi: true,
+            params: []
+        },
+        {
+            name: "GET /api/hotspots",
+            method: "GET",
+            url: "/api/hotspots",
+            description: "Query geographic cluster hotspots generated from historical incident aggregates.",
+            params: []
+        },
+        {
+            name: "GET /api/risk_table",
+            method: "GET",
+            url: "/api/risk_table",
+            description: "Fetch timeline risk matrix mapping traffic causes and hours to risk index scores.",
+            params: []
+        }
+    ];
+
+    let selectedRouteIndex = null;
+    window.initApiTab = function() {
+        const routeList = document.getElementById("apiRouteList");
+        if (!routeList) return;
+        routeList.innerHTML = "";
+
+        API_ROUTES.forEach((route, idx) => {
+            const btn = document.createElement("button");
+            btn.style.width = "100%";
+            btn.style.background = idx === selectedRouteIndex ? "rgba(255,255,255,0.08)" : "transparent";
+            btn.style.border = "none";
+            btn.style.borderBottom = "1px solid var(--border)";
+            btn.style.padding = "10px 12px";
+            btn.style.textAlign = "left";
+            btn.style.cursor = "pointer";
+            btn.style.display = "flex";
+            btn.style.flexDirection = "column";
+            btn.style.gap = "4px";
+            btn.style.transition = "background-color 0.2s";
+
+            btn.onmouseenter = () => {
+                if (idx !== selectedRouteIndex) btn.style.backgroundColor = "rgba(255, 255, 255, 0.02)";
+            };
+            btn.onmouseleave = () => {
+                if (idx !== selectedRouteIndex) btn.style.backgroundColor = "transparent";
+            };
+
+            const badgeColor = route.method === "POST" ? "#4f46e5" : "#059669";
+
+            btn.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="font-size: 8px; font-weight: 800; background: ${badgeColor}; color: #fff; padding: 1px 4px; border-radius: 3px;">${route.method}</span>
+                    <span style="font-family: monospace; font-size: 11px; font-weight: 700; color: #fff; word-break: break-all;">${route.url}</span>
+                </div>
+                <div style="font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">${route.description}</div>
+            `;
+
+            btn.onclick = () => {
+                selectedRouteIndex = idx;
+                selectApiRoute(route);
+                Array.from(routeList.children).forEach((child, cIdx) => {
+                    child.style.backgroundColor = cIdx === idx ? "rgba(255,255,255,0.08)" : "transparent";
+                });
+            };
+
+            routeList.appendChild(btn);
+        });
+    };
+
+    function selectApiRoute(route) {
+        document.getElementById("apiConsoleEmpty").style.display = "none";
+        document.getElementById("apiConsoleContent").style.display = "flex";
+
+        const badge = document.getElementById("apiMethodBadge");
+        badge.textContent = route.method;
+        badge.style.backgroundColor = route.method === "POST" ? "#4f46e5" : "#059669";
+
+        document.getElementById("apiUrlText").textContent = route.url;
+        document.getElementById("apiDescriptionText").textContent = route.description;
+
+        document.getElementById("apiResponseText").textContent = "";
+        document.getElementById("apiStatusBadge").textContent = "";
+
+        const paramsContainer = document.getElementById("apiParamsContainer");
+        const paramsList = document.getElementById("apiParamsList");
+        const bodyContainer = document.getElementById("apiBodyContainer");
+        const bodyTextarea = document.getElementById("apiBodyTextarea");
+
+        paramsContainer.style.display = "none";
+        bodyContainer.style.display = "none";
+
+        if (route.method === "GET" && route.params && route.params.length > 0) {
+            paramsContainer.style.display = "block";
+            paramsList.innerHTML = "";
+            route.params.forEach(param => {
+                const div = document.createElement("div");
+                div.style.display = "flex";
+                div.style.alignItems = "center";
+                div.style.gap = "10px";
+                div.style.fontSize = "12px";
+
+                div.innerHTML = `
+                    <span style="font-family: monospace; font-weight: 600; width: 100px; color: var(--blue);">${param.name}:</span>
+                    <input type="text" id="param_${param.name}" value="${param.default || ''}" placeholder="${param.description}" style="flex: 1; background: #0d1117; border: 1px solid var(--border); border-radius: 4px; padding: 4px 8px; color: #fff; font-size: 12px;"/>
+                `;
+                paramsList.appendChild(div);
+            });
+        } else if (route.method === "POST" && route.body) {
+            bodyContainer.style.display = "block";
+            bodyTextarea.value = JSON.stringify(route.body, null, 2);
+        }
+    }
+
+    document.getElementById("btnSendApiRequest")?.addEventListener("click", async () => {
+        if (selectedRouteIndex === null) return;
+        const route = API_ROUTES[selectedRouteIndex];
+        const statusBadge = document.getElementById("apiStatusBadge");
+        const responseText = document.getElementById("apiResponseText");
+
+        responseText.textContent = "Loading response from backend server...";
+        responseText.style.color = "var(--muted)";
+        statusBadge.textContent = "";
+
+        const FASTAPI_BASE_URL = BASE_URL; // BASE_URL in index.html already points to FastAPI (port 8000)
+        const host = route.isFastApi ? FASTAPI_BASE_URL : FLASK_BASE_URL;
+        let targetUrl = host + route.url;
+
+        if (route.method === "GET" && route.params && route.params.length > 0) {
+            const queryParams = [];
+            route.params.forEach(param => {
+                const input = document.getElementById(`param_${param.name}`);
+                if (input && input.value) {
+                    queryParams.push(`${param.name}=${encodeURIComponent(input.value)}`);
+                }
+            });
+            if (queryParams.length > 0) {
+                targetUrl += "?" + queryParams.join("&");
+            }
+        }
+
+        const options = {
+            method: route.method,
+            headers: {}
+        };
+
+        if (route.method === "POST") {
+            options.headers["Content-Type"] = "application/json";
+            const textarea = document.getElementById("apiBodyTextarea");
+            try {
+                JSON.parse(textarea.value);
+                options.body = textarea.value;
+            } catch (e) {
+                responseText.textContent = "JSON format validation error: " + e.message;
+                responseText.style.color = "var(--red)";
+                return;
+            }
+        }
+
+        try {
+            const t0 = performance.now();
+            const res = await fetch(targetUrl, options);
+            const t1 = performance.now();
+            const duration = Math.round(t1 - t0);
+
+            statusBadge.textContent = `${res.status} ${res.statusText} (${duration}ms)`;
+            
+            if (res.ok) {
+                const json = await res.json();
+                responseText.textContent = JSON.stringify(json, null, 2);
+                responseText.style.color = "#3fb950";
+                statusBadge.style.color = "var(--green-alt)";
+            } else {
+                const text = await res.text();
+                try {
+                    const parsed = JSON.parse(text);
+                    responseText.textContent = JSON.stringify(parsed, null, 2);
+                } catch (e) {
+                    responseText.textContent = text;
+                }
+                responseText.style.color = "var(--red)";
+                statusBadge.style.color = "var(--red)";
+            }
+        } catch (e) {
+            responseText.textContent = "Fetch connection exception: " + e.message;
+            responseText.style.color = "var(--red)";
+            statusBadge.textContent = "Network Error";
+            statusBadge.style.color = "var(--red)";
+        }
+    });
+
+    // ── 6. DEPLOYMENT ANALYSIS & HOTSPOT RISK LOGIC ────────────────────────
+    let deploymentAnalysisMapInstance = null;
+    let deploymentAnalysisPolygons = [];
+
+    window.initDeploymentAnalysisTab = function() {
+        if (!deploymentAnalysisMapInstance && typeof L !== 'undefined') {
+            deploymentAnalysisMapInstance = L.map('deploymentAnalysisMap', { attributionControl: false }).setView([12.97, 77.62], 11);
+            const elegantTiles = document.body.classList.contains('light-tiles')
+                ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+                : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+            L.tileLayer(elegantTiles, { maxZoom: 20 }).addTo(deploymentAnalysisMapInstance);
+        } else if (deploymentAnalysisMapInstance) {
+            setTimeout(() => deploymentAnalysisMapInstance.invalidateSize(), 150);
+        }
+        loadHotspotsData();
+        loadRiskMatrixData();
+    };
+
+    function getRiskColor(level) {
+        const norm = String(level).toUpperCase();
+        if (norm === 'HIGH') return '#f85149';
+        if (norm === 'MID' || norm === 'MEDIUM') return '#d29922';
+        return '#58a6ff';
+    }
+
+    async function loadHotspotsData() {
+        try {
+            const res = await fetch(`${FLASK_BASE_URL}/api/hotspots`);
+            if (!res.ok) throw new Error("Failed to fetch hotspots");
+            const data = await res.json();
+
+            deploymentAnalysisPolygons.forEach(p => {
+                if (deploymentAnalysisMapInstance) deploymentAnalysisMapInstance.removeLayer(p);
+            });
+            deploymentAnalysisPolygons = [];
+
+            const tableBody = document.getElementById("hotspotsTableBody");
+            if (tableBody) tableBody.innerHTML = "";
+
+            data.forEach(item => {
+                const color = getRiskColor(item.risk_level);
+                
+                if (item.hull_points && item.hull_points.length >= 3 && deploymentAnalysisMapInstance) {
+                    const poly = L.polygon(item.hull_points, {
+                        color: color,
+                        fillColor: color,
+                        fillOpacity: 0.25,
+                        weight: 2
+                    }).addTo(deploymentAnalysisMapInstance);
+                    
+                    poly.bindPopup(`
+                        <div style="font-family: sans-serif; color: #fff; background: #161b22; padding: 4px; font-size: 11px;">
+                            <strong style="color: #58a6ff;">Cluster ID: ${item.cluster_id}</strong><br/>
+                            <strong>Risk Level:</strong> <span style="color: ${color}; text-transform: uppercase; font-weight: bold;">${item.risk_level}</span><br/>
+                            <strong>Incident Count:</strong> ${item.incident_count}<br/>
+                            <strong>Avg clearance:</strong> ${Math.round(item.avg_duration)} mins
+                        </div>
+                    `);
+                    
+                    deploymentAnalysisPolygons.push(poly);
+                }
+
+                if (tableBody) {
+                    const tr = document.createElement("tr");
+                    tr.style.borderBottom = "1px solid var(--border)";
+                    tr.innerHTML = `
+                        <td style="padding: 6px 4px; font-weight: 700; color: var(--blue);">#${item.cluster_id}</td>
+                        <td style="padding: 6px 4px;"><span style="font-size: 9px; font-weight: 800; padding: 2px 4px; border-radius: 4px; background: ${color}22; color: ${color}; text-transform: uppercase;">${item.risk_level}</span></td>
+                        <td style="padding: 6px 4px; text-align: right; font-weight: 600;">${item.incident_count}</td>
+                        <td style="padding: 6px 4px; text-align: right; color: var(--muted);">${Math.round(item.avg_duration)}m</td>
+                        <td style="padding: 6px 4px; text-align: right;">
+                            <button onclick="zoomToCluster([${item.center_lat}, ${item.center_lng}])" style="background: transparent; border: 1px solid var(--border); color: var(--blue); font-size: 10px; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-weight: 600;">🔍 View</button>
+                        </td>
+                    `;
+                    tableBody.appendChild(tr);
+                }
+            });
+
+        } catch (e) {
+            console.error("Error loading hotspots:", e);
+        }
+    }
+
+    window.zoomToCluster = function(coords) {
+        if (deploymentAnalysisMapInstance && coords && coords[0] && coords[1]) {
+            deploymentAnalysisMapInstance.setView(coords, 13, { animate: true, duration: 1 });
+        }
+    };
+
+    async function loadRiskMatrixData() {
+        try {
+            const res = await fetch(`${FLASK_BASE_URL}/api/risk_table`);
+            if (!res.ok) throw new Error("Failed to fetch risk table");
+            const data = await res.json();
+
+            const causesSet = new Set();
+            Object.keys(data).forEach(key => {
+                const lastUnderscore = key.lastIndexOf("_");
+                if (lastUnderscore !== -1) {
+                    const cause = key.substring(0, lastUnderscore);
+                    causesSet.add(cause);
+                }
+            });
+
+            const causes = Array.from(causesSet).sort();
+            const rowsContainer = document.getElementById("riskMatrixRows");
+            if (rowsContainer) {
+                rowsContainer.innerHTML = "";
+
+                causes.forEach(cause => {
+                    const rowDiv = document.createElement("div");
+                    rowDiv.style.display = "flex";
+                    rowDiv.style.gap = "2px";
+
+                    const label = document.createElement("div");
+                    label.style.width = "150px";
+                    label.style.flexShrink = "0";
+                    label.style.fontSize = "11px";
+                    label.style.color = "#fff";
+                    label.style.textTransform = "capitalize";
+                    label.style.fontWeight = "600";
+                    label.style.textAlign = "right";
+                    label.style.paddingRight = "12px";
+                    label.style.alignSelf = "center";
+                    label.style.whiteSpace = "nowrap";
+                    label.style.overflow = "hidden";
+                    label.style.textOverflow = "ellipsis";
+                    label.textContent = cause.replace(/_/g, " ");
+                    rowDiv.appendChild(label);
+
+                    const cellsWrapper = document.createElement("div");
+                    cellsWrapper.style.display = "flex";
+                    cellsWrapper.style.flex = "1";
+                    cellsWrapper.style.gap = "2px";
+
+                    for (let hr = 0; hr < 24; hr++) {
+                        const key = `${cause}_${hr}`;
+                        const cellData = data[key];
+                        
+                        const cell = document.createElement("div");
+                        cell.style.width = "calc(100% / 24)";
+                        cell.style.height = "20px";
+                        cell.style.borderRadius = "2px";
+                        cell.style.cursor = "pointer";
+                        cell.style.transition = "transform 0.1s, outline 0.1s";
+
+                        let cellColor = "rgba(255, 255, 255, 0.05)";
+                        if (cellData) {
+                            const r = String(cellData.risk).toUpperCase();
+                            if (r === "HIGH") cellColor = "rgba(248, 81, 73, 0.8)";
+                            else if (r === "MEDIUM" || r === "MID") cellColor = "rgba(210, 153, 34, 0.8)";
+                            else if (r === "LOW") cellColor = "rgba(88, 166, 255, 0.8)";
+                        }
+                        cell.style.backgroundColor = cellColor;
+
+                        cell.onmouseenter = () => {
+                            cell.style.transform = "scale(1.15)";
+                            cell.style.outline = "1px solid #fff";
+                            cell.style.zIndex = "10";
+                        };
+                        cell.onmouseleave = () => {
+                            cell.style.transform = "none";
+                            cell.style.outline = "none";
+                            cell.style.zIndex = "1";
+                        };
+
+                        cell.onclick = () => {
+                            showRiskCellDetails(cause, hr, cellData);
+                        };
+
+                        cellsWrapper.appendChild(cell);
+                    }
+
+                    rowDiv.appendChild(cellsWrapper);
+                    rowsContainer.appendChild(rowDiv);
+                });
+            }
+
+        } catch (e) {
+            console.error("Error loading risk table data:", e);
+        }
+    }
+
+    function showRiskCellDetails(cause, hour, data) {
+        const detailsContainer = document.getElementById("riskCellDetails");
+        if (!detailsContainer) return;
+
+        detailsContainer.style.display = "block";
+        const causeName = cause.replace(/_/g, " ");
+        const formattedHour = String(hour).padStart(2, '0') + ":00";
+
+        if (!data) {
+            detailsContainer.innerHTML = `
+                <div style="color: var(--muted);">
+                    <strong>Cause:</strong> <span style="color: #fff; text-transform: uppercase;">${causeName}</span> &nbsp;|&nbsp; 
+                    <strong>Time Window:</strong> <span style="color: #fff;">${formattedHour} - ${String((hour+1)%24).padStart(2, '0')}:00</span> &nbsp;|&nbsp; 
+                    <span style="color: var(--muted); font-weight: bold;">No historical risk recorded for this slot.</span>
+                </div>
+            `;
+            return;
+        }
+
+        const rColor = getRiskColor(data.risk);
+
+        detailsContainer.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div>
+                    <strong style="color: var(--muted);">Cause:</strong> <span style="color: #fff; text-transform: capitalize; font-weight: bold; font-size: 13px;">${causeName}</span> &nbsp;&nbsp;&nbsp;&nbsp;
+                    <strong style="color: var(--muted);">Time window:</strong> <span style="color: #fff; font-family: monospace;">${formattedHour} - ${String((hour+1)%24).padStart(2, '0')}:00</span>
+                </div>
+                <div style="display: flex; gap: 15px; align-items: center;">
+                    <div>
+                        <strong style="color: var(--muted);">Risk level:</strong> 
+                        <span style="font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; background: ${rColor}22; color: ${rColor}; text-transform: uppercase;">${data.risk}</span>
+                    </div>
+                    <div>
+                        <strong style="color: var(--muted);">Average clearance:</strong> <span style="color: var(--blue); font-weight: bold;">${data.avg_duration} mins</span>
+                    </div>
+                    <div>
+                        <strong style="color: var(--muted);">Historical count:</strong> <span style="color: #fff; font-weight: bold;">${data.count} incidents</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Wrap theme toggling to support both maps
+    const originalTileToggle = document.getElementById('tileToggle');
+    if (originalTileToggle) {
+        // Find existing listener on tileToggle and overwrite or hook
+        originalTileToggle.addEventListener('click', () => {
+            const isLight = document.body.classList.contains('light-tiles');
+            const url = isLight
+                ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+                : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+            if (deploymentAnalysisMapInstance) {
+                L.tileLayer(url, { maxZoom: 20 }).addTo(deploymentAnalysisMapInstance);
+            }
+        });
+    }
   </script>
 </body>
 </html>
