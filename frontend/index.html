@@ -4877,7 +4877,7 @@
           zoomControl: false,
           attributionControl: false
         });
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(miniMap);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 20 }).addTo(miniMap);
       }
 
       // Fly to coordinate
@@ -4944,10 +4944,10 @@
         attributionControl: false
       }).setView([12.9716, 77.5946], 12);
 
-      // OSM Base Layer
-      const osmUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+      // Voyager Base Layer
+      const osmUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
       L.tileLayer(osmUrl, {
-        maxZoom: 19
+        maxZoom: 20
       }).addTo(map);
 
       // Custom Zoom control to bottom-right
@@ -6444,7 +6444,7 @@
           zoomControl: false,
           attributionControl: false
         });
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(deployMap);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 20 }).addTo(deployMap);
         L.control.zoom({ position: 'bottomright' }).addTo(deployMap);
       }
 
@@ -7913,8 +7913,8 @@
     window.initDeploymentAnalysisTab = function() {
         if (!deploymentAnalysisMapInstance && typeof L !== 'undefined') {
             deploymentAnalysisMapInstance = L.map('deploymentAnalysisMap', { attributionControl: false }).setView([12.97, 77.62], 11);
-            const elegantTiles = document.body.classList.contains('light-tiles')
-                ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+            const elegantTiles = !document.body.classList.contains('dark-tiles')
+                ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
                 : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
             L.tileLayer(elegantTiles, { maxZoom: 20 }).addTo(deploymentAnalysisMapInstance);
         } else if (deploymentAnalysisMapInstance) {
@@ -8137,9 +8137,9 @@
     if (originalTileToggle) {
         // Find existing listener on tileToggle and overwrite or hook
         originalTileToggle.addEventListener('click', () => {
-            const isLight = document.body.classList.contains('light-tiles');
+            const isLight = !document.body.classList.contains('dark-tiles');
             const url = isLight
-                ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+                ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
                 : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
             if (deploymentAnalysisMapInstance) {
                 L.tileLayer(url, { maxZoom: 20 }).addTo(deploymentAnalysisMapInstance);

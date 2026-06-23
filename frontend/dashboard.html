@@ -1708,10 +1708,10 @@
         ================================================================= */
         const map = L.map('map', { zoomControl: false }).setView(CITY_CENTER, 12);
         L.control.zoom({ position: 'bottomright' }).addTo(map);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; OpenStreetMap &copy; CARTO',
             subdomains: 'abcd',
-            maxZoom: 19
+            maxZoom: 20
         }).addTo(map);
 
         let incidentLayer = L.layerGroup().addTo(map);

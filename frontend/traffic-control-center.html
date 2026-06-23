@@ -293,7 +293,9 @@
       autoRefreshTimer: null
     };
 
-    const apiRoot = window.location.origin;
+    const apiRoot = window.location.origin.includes(':5001')
+      ? window.location.origin.replace(':5001', ':8000')
+      : (window.location.protocol === 'file:' ? 'http://localhost:8000' : window.location.origin);
 
     function showToast(msg) {
       const t = document.getElementById('toast');
@@ -309,63 +311,86 @@
     }
 
     async function loadData() {
+      let stationsRaw = [];
+      let assignmentsRaw = [];
+      let usedFallback = false;
+
       try {
-        // Core orchestration link tracking your backend get_assignments() strategy
         const [stationsRes, assignmentsRes] = await Promise.all([
-          fetch(`${apiRoot}/api/police_stations?city=Bangalore`).then(r => r.json()).catch(() => ({ police_stations: [] })),
-          fetch(`${apiRoot}/api/assignments?city=Bangalore`).then(r => r.json()).catch(() => ({ assignments: [] }))
+          fetch(`${apiRoot}/api/police_stations?city=Bangalore`).then(r => r.json()),
+          fetch(`${apiRoot}/api/assignments?city=Bangalore`).then(r => r.json())
         ]);
-
-        const stationsRaw = stationsRes.police_stations || [];
-        state.stations = stationsRaw.map(s => ({
-          id: s.station_id || s.station_name.toLowerCase().replace(/\s+/g, '_'),
-          name: s.station_name || "Emergency Station",
-          zone: s.zone || "Central District",
-          lat: Number(s.lat || s.latitude),
-          lng: Number(s.lng || s.longitude)
-        })).filter(s => s.lat && s.lng);
-
-        const assignmentsRaw = assignmentsRes.assignments || [];
-        state.incidents = assignmentsRaw.map((asn, idx) => {
-          const rawReport = asn.report || {};
-          const coreAssignment = asn.assignment || {};
-          const id = rawReport.report_id || `inc_${idx}`;
-
-          return {
-            id: id.toString(),
-            location_name: rawReport.location_name || "Unknown Point",
-            issue_type: rawReport.issue_type || "General Bottleneck",
-            priority: (rawReport.priority || "MEDIUM").toUpperCase(),
-            status: rawReport.status || "enroute",
-            minutes_ago: Number(rawReport.minutes_ago || 0),
-            lat: Number(rawReport.coordinates?.lat || rawReport.lat),
-            lng: Number(rawReport.coordinates?.lng || rawReport.lng),
-            
-            // Dynamic routing pipeline values straight from the RouteManager engine
-            assigned_station: coreAssignment.assigned_station || "Unassigned Control Node",
-            station_location: coreAssignment.station_location || null,
-            distance_km: coreAssignment.distance_km || 0,
-            route_polyline: coreAssignment.route || [], // Dynamic route path array [[lat, lng], ...]
-            
-            // Extracted AI predictions block
-            predictive_metrics: asn.predictive_metrics || {
-              eta_reach_min: Math.floor(coreAssignment.distance_km * 3) || 5,
-              eta_resolve_min: 25,
-              confidence: 88
-            }
-          };
-        }).filter(i => i.lat && i.lng);
-
-        document.getElementById('stationCount').textContent = `${state.stations.length} units`;
-        document.getElementById('queueCount').textContent = `${state.incidents.length} active`;
-        document.getElementById('activeCount').textContent = `Active: ${state.incidents.length}`;
-
-        drawMapBase();
-        renderStations();
-        renderQueue();
-        renderAnalytics();
+        stationsRaw = stationsRes.police_stations || [];
+        assignmentsRaw = assignmentsRes.assignments || [];
       } catch (err) {
-        console.error("Operational pipeline sync error:", err);
+        console.error("Operational pipeline fetch error, using fallbacks:", err);
+        usedFallback = true;
+        
+        // Mock fallback data for stations and emergency dispatch routes
+        stationsRaw = [
+          { station_id: "peenya", station_name: "Peenya Traffic Police Station", zone: "North Zone", lat: 13.0329, lng: 77.5273 },
+          { station_id: "wilson_garden", station_name: "Wilson Garden Police Station", zone: "Central Zone", lat: 12.9511, lng: 77.5960 },
+          { station_id: "sadashiva_nagar", station_name: "Sadashiva Nagar Police Station", zone: "Central Zone", lat: 13.0068, lng: 77.5802 },
+          { station_id: "kengeri", station_name: "Kengeri Police Station", zone: "South Zone", lat: 12.9175, lng: 77.4839 }
+        ];
+        
+        assignmentsRaw = [
+          {
+            report: { report_id: "FKID000000", location_name: "Jalahalli Cross Junction", issue_type: "vehicle_breakdown", priority: "HIGH", status: "enroute", minutes_ago: 40, lat: 13.0400041, lng: 77.5180991, description: "LCV broken down at SM Circle incoming man track" },
+            assignment: { assigned_station: "Peenya Traffic Police Station", station_location: { lat: 13.0329, lng: 77.5273 }, distance_km: 2.1, route: [[13.0329, 77.5273], [13.035, 77.524], [13.0400041, 77.5180991]] }
+          },
+          {
+            report: { report_id: "FKID000003", location_name: "Bashyam Circle", issue_type: "tree_fall", priority: "HIGH", status: "progress", minutes_ago: 90, lat: 13.0061469, lng: 77.5794348, description: "Tree fall blocking road" },
+            assignment: { assigned_station: "Sadashiva Nagar Police Station", station_location: { lat: 13.0068, lng: 77.5802 }, distance_km: 3.2, route: [[13.0068, 77.5802], [13.0061469, 77.5794348]] }
+          }
+        ];
+      }
+
+      state.stations = stationsRaw.map(s => ({
+        id: s.station_id || s.station_name.toLowerCase().replace(/\s+/g, '_'),
+        name: s.station_name || "Emergency Station",
+        zone: s.zone || "Central District",
+        lat: Number(s.lat || s.latitude),
+        lng: Number(s.lng || s.longitude)
+      })).filter(s => s.lat && s.lng);
+
+      state.incidents = assignmentsRaw.map((asn, idx) => {
+        const rawReport = asn.report || {};
+        const coreAssignment = asn.assignment || {};
+        const id = rawReport.report_id || `inc_${idx}`;
+
+        return {
+          id: id.toString(),
+          location_name: rawReport.location_name || "Unknown Point",
+          issue_type: rawReport.issue_type || "General Bottleneck",
+          priority: (rawReport.priority || "MEDIUM").toUpperCase(),
+          status: rawReport.status || "enroute",
+          minutes_ago: Number(rawReport.minutes_ago || 0),
+          lat: Number(rawReport.coordinates?.lat || rawReport.lat),
+          lng: Number(rawReport.coordinates?.lng || rawReport.lng),
+          assigned_station: coreAssignment.assigned_station || "Unassigned Control Node",
+          station_location: coreAssignment.station_location || null,
+          distance_km: coreAssignment.distance_km || 0,
+          route_polyline: coreAssignment.route || [],
+          predictive_metrics: asn.predictive_metrics || {
+            eta_reach_min: Math.floor(coreAssignment.distance_km * 3) || 5,
+            eta_resolve_min: 25,
+            confidence: 88
+          }
+        };
+      }).filter(i => i.lat && i.lng);
+
+      document.getElementById('stationCount').textContent = `${state.stations.length} units`;
+      document.getElementById('queueCount').textContent = `${state.incidents.length} active`;
+      document.getElementById('activeCount').textContent = `Active: ${state.incidents.length}`;
+
+      drawMapBase();
+      renderStations();
+      renderQueue();
+      renderAnalytics();
+
+      if (usedFallback) {
+        showToast("⚠ Backend offline – displaying mock emergency dispatch channels");
       }
     }
 
@@ -373,9 +398,12 @@
       if (!window.mapInstance) {
         window.mapInstance = L.map('map', { zoomControl: false }).setView([12.9716, 77.5946], 12);
         L.control.zoom({ position: 'bottomright' }).addTo(window.mapInstance);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
           attribution: '&copy; OpenStreetMap &copy; CARTO'
         }).addTo(window.mapInstance);
+        setTimeout(() => {
+          if (window.mapInstance) window.mapInstance.invalidateSize();
+        }, 150);
       }
 
       // Flush old layout visual references
@@ -582,6 +610,7 @@
 
     window.addEventListener('load', () => {
       renderSkeletons();
+      drawMapBase(); // Initialize Leaflet map immediately to avoid layout grid render delays
       loadData();
     });
   </script>
