@@ -267,7 +267,8 @@
         <button class="tab-btn" id="btnTabControlCenter" onclick="window.switchTab('controlCenter')">💎 Traffic Control
             Center</button>
         <button class="tab-btn" id="btnTabApi" onclick="window.switchTab('api')">📡 API Explorer</button>
-        <button class="tab-btn" id="btnTabDeploymentAnalysis" onclick="window.switchTab('deploymentAnalysis')">📈 Deployment Analysis</button>
+        <button class="tab-btn" id="btnTabDeploymentAnalysis" onclick="window.switchTab('deploymentAnalysis')">📈
+            Deployment Analysis</button>
     </nav>
 
     <div class="app-container" id="appContainer">
@@ -2182,59 +2183,432 @@
             </script>
         </div>
 
+        <div class="view-pane" id="viewSubmitReportandNews">
+            <style>
+                /* Scoped to avoid global pollution while blending seamlessly with graphite theme */
+                #viewSubmitReportandNews {
+                    background-color: #1a1a24;
+                    border: 1px solid #2e2e3f;
+                    border-radius: 8px;
+                    color: #e2e8f0;
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    margin: 20px auto;
+                    max-width: 1100px;
+                    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+                    display: none;
+                    /* Controlled explicitly by your switchTab framework class updates */
+                }
+
+                /* Ensures tab system overrides display none when active class is present */
+                #viewSubmitReportandNews.active {
+                    display: block !important;
+                }
+
+                #viewSubmitReportandNews .panel-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 15px 20px;
+                    border-bottom: 1px solid #2e2e3f;
+                    background-color: #222232;
+                    border-top-left-radius: 7px;
+                    border-top-right-radius: 7px;
+                }
+
+                #viewSubmitReportandNews .panel-header h3 {
+                    margin: 0;
+                    font-size: 1.15rem;
+                    font-weight: 600;
+                    color: #4facfe;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                }
+
+                #viewSubmitReportandNews .panel-body {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 25px;
+                    padding: 20px;
+                    margin: 0;
+                }
+
+                #viewSubmitReportandNews .form-column {
+                    flex: 1;
+                    min-width: 320px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 15px;
+                }
+
+                #viewSubmitReportandNews .left-parameters {
+                    flex: 0 0 40%;
+                }
+
+                #viewSubmitReportandNews .right-description {
+                    flex: 1;
+                }
+
+                #viewSubmitReportandNews .input-group {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 6px;
+                }
+
+                #viewSubmitReportandNews .input-group.full-height {
+                    flex-grow: 1;
+                }
+
+                #viewSubmitReportandNews label {
+                    font-size: 0.85rem;
+                    color: #94a3b8;
+                    font-weight: 500;
+                    text-align: left;
+                }
+
+                #viewSubmitReportandNews input[type="text"],
+                #viewSubmitReportandNews input[type="number"],
+                #viewSubmitReportandNews select,
+                #viewSubmitReportandNews textarea {
+                    background-color: #0f0f1a;
+                    border: 1px solid #3d3d5c;
+                    border-radius: 4px;
+                    padding: 10px 12px;
+                    color: #f1f5f9;
+                    font-size: 0.9rem;
+                    transition: border-color 0.2s, box-shadow 0.2s;
+                    width: 100%;
+                    box-sizing: border-box;
+                }
+
+                #viewSubmitReportandNews input:focus,
+                #viewSubmitReportandNews select:focus,
+                #viewSubmitReportandNews textarea:focus {
+                    outline: none;
+                    border-color: #00f2fe;
+                    box-shadow: 0 0 5px rgba(0, 242, 254, 0.3);
+                }
+
+                #viewSubmitReportandNews textarea {
+                    resize: none;
+                    min-height: 200px;
+                    height: 100%;
+                }
+
+                #viewSubmitReportandNews .coordinate-row {
+                    display: flex;
+                    gap: 12px;
+                }
+
+                #viewSubmitReportandNews .coordinate-row .input-group {
+                    flex: 1;
+                }
+
+                #viewSubmitReportandNews .btn-toggle {
+                    background-color: #3b82f6;
+                    color: #ffffff;
+                    border: none;
+                    border-radius: 4px;
+                    padding: 8px 14px;
+                    font-size: 0.85rem;
+                    cursor: pointer;
+                    font-weight: 500;
+                    transition: background-color 0.2s;
+                }
+
+                #viewSubmitReportandNews .btn-toggle:hover {
+                    background-color: #2563eb;
+                }
+
+                #viewSubmitReportandNews .form-actions {
+                    display: flex;
+                    justify-content: flex-end;
+                    margin-top: 10px;
+                }
+
+                #viewSubmitReportandNews .btn-submit {
+                    background-image: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+                    color: #0f172a;
+                    border: none;
+                    border-radius: 4px;
+                    padding: 12px 24px;
+                    font-size: 0.95rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    box-shadow: 0 4px 10px rgba(0, 242, 254, 0.2);
+                    transition: transform 0.1s, opacity 0.2s;
+                }
+
+                #viewSubmitReportandNews .btn-submit:hover {
+                    transform: translateY(-1px);
+                    opacity: 0.95;
+                }
+
+                #viewSubmitReportandNews .btn-submit:active {
+                    transform: translateY(1px);
+                }
+
+                #viewSubmitReportandNews .hidden {
+                    display: none !important;
+                }
+            </style>
+
+            <div class="panel-header">
+                <h3>Create Traffic Entry</h3>
+                <button type="button" id="toggleReportTypeBtn" class="btn-toggle" data-type="report">
+                    Switch to News Mode
+                </button>
+            </div>
+
+            <form id="submissionForm" class="panel-body">
+                <div class="form-column left-parameters">
+                    <div class="input-group">
+                        <label for="issueType">Issue Type</label>
+                        <select id="issueType" name="issue_type" required>
+                            <option value="ACCIDENT">Accident</option>
+                            <option value="CONGESTION">Congestion</option>
+                            <option value="ROADWORK">Roadwork</option>
+                            <option value="WEATHER">Weather Hazard</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="locationName">Location Name</label>
+                        <input type="text" id="locationName" name="location_name" placeholder="e.g. MG Road, Bangalore"
+                            required>
+                    </div>
+
+                    <div class="coordinate-row" id="coordinateFields">
+                        <div class="input-group">
+                            <label for="lat">Latitude</label>
+                            <input type="number" step="any" id="lat" name="lat" placeholder="12.9716">
+                        </div>
+                        <div class="input-group">
+                            <label for="lng">Longitude</label>
+                            <input type="number" step="any" id="lng" name="lng" placeholder="77.5946">
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="priority">Priority Severity</label>
+                        <select id="priority" name="priority">
+                            <option value="LOW">Low</option>
+                            <option value="MEDIUM" selected>Medium</option>
+                            <option value="HIGH">High</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group hidden" id="timestampField">
+                        <label for="timestamp">Timestamp (Optional)</label>
+                        <input type="text" id="timestamp" name="timestamp" placeholder="YYYY-MM-DD HH:MM:SS">
+                    </div>
+                </div>
+
+                <div class="form-column right-description">
+                    <div class="input-group full-height">
+                        <label for="description">Detailed Description / News Content</label>
+                        <textarea id="description" name="description"
+                            placeholder="Provide complete incident notes or copy-paste external news article details here..."
+                            required></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" id="submitReportBtn" class="btn-submit">Submit Entry</button>
+                    </div>
+                </div>
+            </form>
+
+            <script>
+                // Use a clean wrapper function executed safely irrespective of template rendering timelines
+                (function () {
+                    function initSubmissionForm() {
+                        const toggleBtn = document.getElementById("toggleReportTypeBtn");
+                        const formTitle = document.querySelector("#viewSubmitReportandNews .panel-header h3");
+                        const timestampField = document.getElementById("timestampField");
+                        const submissionForm = document.getElementById("submissionForm");
+
+                        if (!toggleBtn || !submissionForm) return; // Prevent breaking if DOM elements are detached during partial state renders
+
+                        // 1. View Mode Toggler
+                        toggleBtn.addEventListener("click", function () {
+                            const currentType = toggleBtn.getAttribute("data-type");
+
+                            if (currentType === "report") {
+                                toggleBtn.setAttribute("data-type", "news");
+                                toggleBtn.innerText = "Switch to Report Mode";
+                                formTitle.innerText = "Add External News Story";
+                                timestampField.classList.remove("hidden");
+                            } else {
+                                toggleBtn.setAttribute("data-type", "report");
+                                toggleBtn.innerText = "Switch to News Mode";
+                                formTitle.innerText = "Create Traffic Entry";
+                                timestampField.classList.add("hidden");
+                            }
+                        });
+
+                        // 2. Form Submission Action Processor
+                        submissionForm.addEventListener("submit", function (e) {
+                            e.preventDefault();
+
+                            const currentType = toggleBtn.getAttribute("data-type");
+
+                            const issueType = document.getElementById("issueType").value;
+                            const locationName = document.getElementById("locationName").value;
+                            const description = document.getElementById("description").value;
+                            const priority = document.getElementById("priority").value;
+                            const lat = document.getElementById("lat").value;
+                            const lng = document.getElementById("lng").value;
+
+                            let fetchUrl = "";
+                            let fetchOptions = {};
+
+                            if (currentType === "news") {
+                                fetchUrl = "/save_news";
+
+                                const payload = {
+                                    issue_type: issueType,
+                                    description: description,
+                                    location_name: locationName,
+                                    priority: priority || "LOW"
+                                };
+
+                                if (lat) payload.lat = parseFloat(lat);
+                                if (lng) payload.lng = parseFloat(lng);
+
+                                const timeVal = document.getElementById("timestamp").value;
+                                if (timeVal) payload.timestamp = timeVal;
+
+                                fetchOptions = {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify(payload)
+                                };
+                            } else {
+                                const queryParams = new URLSearchParams({
+                                    location: locationName,
+                                    event_type: issueType,
+                                    description: description,
+                                    lat: lat || "0.0",
+                                    long: lng || "0.0", // Matches backend's request.args.get('long') choice
+                                    priority: priority || "MEDIUM"
+                                });
+
+                                fetchUrl = `/save_reports?${queryParams.toString()}`;
+                                fetchOptions = {
+                                    method: "GET"
+                                };
+                            }
+
+                            fetch(fetchUrl, fetchOptions)
+                                .then(res => res.json())
+                                .then(data => {
+                                    if (data.success) {
+                                        alert(data.message || "Saved successfully!");
+                                        submissionForm.reset();
+
+                                        // Retain selected layout status settings correctly after forms wipe clean
+                                        if (currentType === "news") {
+                                            timestampField.classList.remove("hidden");
+                                        } else {
+                                            timestampField.classList.add("hidden");
+                                        }
+                                    } else {
+                                        alert("Error: " + (data.error || "Failed to save submission."));
+                                    }
+                                })
+                                .catch(err => {
+                                    console.error("Submission Handling Error:", err);
+                                    alert("Network Error saving report.");
+                                });
+                        });
+                    }
+
+                    // Fallback strategy ensuring instant execution if loaded dynamically, or execution once DOM catches up
+                    if (document.readyState === "loading") {
+                        document.addEventListener("DOMContentLoaded", initSubmissionForm);
+                    } else {
+                        initSubmissionForm();
+                    }
+                })();
+            </script>
+        </div>
+
         <div id="viewApi" class="view-panel">
-            <h2 style="margin-top: 0; font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 8px;">📡 Operational API Console</h2>
-            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Explore, inspect, and test the Bengaluru Civic Grid intelligence endpoint routing infrastructure.</p>
+            <h2 style="margin-top: 0; font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 8px;">📡
+                Operational API Console</h2>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Explore, inspect, and test the
+                Bengaluru Civic Grid intelligence endpoint routing infrastructure.</p>
 
             <div style="display: flex; gap: 20px; height: 600px; overflow: hidden;">
                 <!-- Left Sidebar: Endpoint list -->
-                <div style="width: 320px; background: #161b22; border: 1px solid var(--border-color); border-radius: 6px; display: flex; flex-direction: column; overflow: hidden;">
-                    <div style="padding: 12px; border-bottom: 1px solid var(--border-color); font-weight: 700; font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">Available Routes</div>
-                    <div id="apiRouteList" style="flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 6px;">
+                <div
+                    style="width: 320px; background: #161b22; border: 1px solid var(--border-color); border-radius: 6px; display: flex; flex-direction: column; overflow: hidden;">
+                    <div
+                        style="padding: 12px; border-bottom: 1px solid var(--border-color); font-weight: 700; font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">
+                        Available Routes</div>
+                    <div id="apiRouteList"
+                        style="flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 6px;">
                         <!-- Populate routes dynamically -->
                     </div>
                 </div>
 
                 <!-- Right Pane: Route Console -->
-                <div id="apiConsolePane" style="flex: 1; background: #161b22; border: 1px solid var(--border-color); border-radius: 6px; display: flex; flex-direction: column; overflow: hidden; padding: 20px;">
-                    <div id="apiConsoleEmpty" style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; color: var(--text-muted);">
+                <div id="apiConsolePane"
+                    style="flex: 1; background: #161b22; border: 1px solid var(--border-color); border-radius: 6px; display: flex; flex-direction: column; overflow: hidden; padding: 20px;">
+                    <div id="apiConsoleEmpty"
+                        style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; color: var(--text-muted);">
                         <span style="font-size: 40px; margin-bottom: 12px;">⚡</span>
                         <div style="font-weight: 600; color: var(--text-primary);">Awaiting Endpoint Selection</div>
-                        <div style="font-size: 12px; margin-top: 4px;">Choose an operational route from the left sidebar to execute requests.</div>
+                        <div style="font-size: 12px; margin-top: 4px;">Choose an operational route from the left sidebar
+                            to execute requests.</div>
                     </div>
                     <div id="apiConsoleContent" style="display: none; flex-direction: column; height: 100%;">
                         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
-                            <span id="apiMethodBadge" style="font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 4px; color: #fff;">GET</span>
-                            <span id="apiUrlText" style="font-family: monospace; font-size: 14px; font-weight: 600; color: var(--text-primary);">/api/route</span>
+                            <span id="apiMethodBadge"
+                                style="font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 4px; color: #fff;">GET</span>
+                            <span id="apiUrlText"
+                                style="font-family: monospace; font-size: 14px; font-weight: 600; color: var(--text-primary);">/api/route</span>
                         </div>
-                        <div id="apiDescriptionText" style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px; line-height: 1.4;">Route description here.</div>
-                        
+                        <div id="apiDescriptionText"
+                            style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px; line-height: 1.4;">
+                            Route description here.</div>
+
                         <!-- Query Params or Request Body input fields -->
                         <div id="apiParamsContainer" style="display: none; margin-bottom: 15px;">
-                            <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; letter-spacing: 0.5px;">Parameters</div>
+                            <div
+                                style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; letter-spacing: 0.5px;">
+                                Parameters</div>
                             <div id="apiParamsList" style="display: flex; flex-direction: column; gap: 8px;"></div>
                         </div>
 
                         <!-- JSON Request Body Editor -->
                         <div id="apiBodyContainer" style="display: none; margin-bottom: 15px;">
-                            <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; letter-spacing: 0.5px;">Request JSON Body</div>
-                            <textarea id="apiBodyTextarea" style="width: 100%; height: 120px; background: #0d1117; border: 1px solid var(--border-color); border-radius: 6px; color: #fff; font-family: monospace; padding: 10px; font-size: 12px; resize: none;"></textarea>
+                            <div
+                                style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; letter-spacing: 0.5px;">
+                                Request JSON Body</div>
+                            <textarea id="apiBodyTextarea"
+                                style="width: 100%; height: 120px; background: #0d1117; border: 1px solid var(--border-color); border-radius: 6px; color: #fff; font-family: monospace; padding: 10px; font-size: 12px; resize: none;"></textarea>
                         </div>
 
                         <!-- Actions -->
                         <div style="margin-bottom: 20px;">
-                            <button id="btnSendApiRequest" style="background: var(--accent-blue); border: none; color: #0d1117; font-weight: 700; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 6px;">
+                            <button id="btnSendApiRequest"
+                                style="background: var(--accent-blue); border: none; color: #0d1117; font-weight: 700; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 6px;">
                                 🚀 Send Request
                             </button>
                         </div>
 
                         <!-- JSON Response -->
                         <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                                <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">Response Console</span>
-                                <span id="apiStatusBadge" style="font-size: 10px; font-weight: 800; font-family: monospace; color: var(--success-green);"></span>
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                <span
+                                    style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">Response
+                                    Console</span>
+                                <span id="apiStatusBadge"
+                                    style="font-size: 10px; font-weight: 800; font-family: monospace; color: var(--success-green);"></span>
                             </div>
-                            <pre id="apiResponseText" style="flex: 1; background: #0d1117; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; overflow: auto; font-family: monospace; font-size: 12px; color: #3fb950; margin: 0;"></pre>
+                            <pre id="apiResponseText"
+                                style="flex: 1; background: #0d1117; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; overflow: auto; font-family: monospace; font-size: 12px; color: #3fb950; margin: 0;"></pre>
                         </div>
                     </div>
                 </div>
@@ -2242,32 +2616,47 @@
         </div>
 
         <div id="viewDeploymentAnalysis" class="view-panel">
-            <h2 style="margin-top: 0; font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 8px;">📈 Deployment & Hotspot Risk Analytics</h2>
-            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Deep analytics mapping historical congestion hotspots, spatial cluster boundaries, and causal risk scores over a 24-hour timeline.</p>
+            <h2 style="margin-top: 0; font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 8px;">📈 Deployment
+                & Hotspot Risk Analytics</h2>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Deep analytics mapping historical
+                congestion hotspots, spatial cluster boundaries, and causal risk scores over a 24-hour timeline.</p>
 
             <div style="display: flex; flex-direction: column; gap: 20px;">
                 <!-- Top Row: Clustered hotspots map & table -->
                 <div style="display: flex; gap: 20px; height: 480px;">
                     <!-- Map Card -->
-                    <div style="flex: 1.2; background: #161b22; border: 1px solid var(--border-color); border-radius: 6px; display: flex; flex-direction: column; overflow: hidden; position: relative;">
-                        <div style="padding: 12px; border-bottom: 1px solid var(--border-color); font-weight: 700; font-size: 11px; text-transform: uppercase; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
+                    <div
+                        style="flex: 1.2; background: #161b22; border: 1px solid var(--border-color); border-radius: 6px; display: flex; flex-direction: column; overflow: hidden; position: relative;">
+                        <div
+                            style="padding: 12px; border-bottom: 1px solid var(--border-color); font-weight: 700; font-size: 11px; text-transform: uppercase; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
                             <span>🗺️ Hotspot Spatial Clusters (hull mapping)</span>
                             <div style="display: flex; gap: 8px;">
-                                <span style="font-size: 10px; color: #f85149; display: flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #f85149; display: inline-block;"></span>High</span>
-                                <span style="font-size: 10px; color: #d29922; display: flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #d29922; display: inline-block;"></span>Medium</span>
-                                <span style="font-size: 10px; color: #58a6ff; display: flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #58a6ff; display: inline-block;"></span>Low</span>
+                                <span
+                                    style="font-size: 10px; color: #f85149; display: flex; align-items: center; gap: 4px;"><span
+                                        style="width: 8px; height: 8px; border-radius: 50%; background: #f85149; display: inline-block;"></span>High</span>
+                                <span
+                                    style="font-size: 10px; color: #d29922; display: flex; align-items: center; gap: 4px;"><span
+                                        style="width: 8px; height: 8px; border-radius: 50%; background: #d29922; display: inline-block;"></span>Medium</span>
+                                <span
+                                    style="font-size: 10px; color: #58a6ff; display: flex; align-items: center; gap: 4px;"><span
+                                        style="width: 8px; height: 8px; border-radius: 50%; background: #58a6ff; display: inline-block;"></span>Low</span>
                             </div>
                         </div>
                         <div id="deploymentAnalysisMap" style="flex: 1; background: #0d1117;"></div>
                     </div>
 
                     <!-- List Table Card -->
-                    <div style="flex: 1; background: #161b22; border: 1px solid var(--border-color); border-radius: 6px; display: flex; flex-direction: column; overflow: hidden;">
-                        <div style="padding: 12px; border-bottom: 1px solid var(--border-color); font-weight: 700; font-size: 11px; text-transform: uppercase; color: var(--text-muted);">Hotspot Inventory Table</div>
+                    <div
+                        style="flex: 1; background: #161b22; border: 1px solid var(--border-color); border-radius: 6px; display: flex; flex-direction: column; overflow: hidden;">
+                        <div
+                            style="padding: 12px; border-bottom: 1px solid var(--border-color); font-weight: 700; font-size: 11px; text-transform: uppercase; color: var(--text-muted);">
+                            Hotspot Inventory Table</div>
                         <div style="flex: 1; overflow-y: auto; padding: 10px;">
-                            <table style="width: 100%; border-collapse: collapse; font-size: 11px; color: var(--text-primary);">
+                            <table
+                                style="width: 100%; border-collapse: collapse; font-size: 11px; color: var(--text-primary);">
                                 <thead>
-                                    <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-muted); text-align: left;">
+                                    <tr
+                                        style="border-bottom: 1px solid var(--border-color); color: var(--text-muted); text-align: left;">
                                         <th style="padding: 6px 4px;">ID</th>
                                         <th style="padding: 6px 4px;">Risk</th>
                                         <th style="padding: 6px 4px; text-align: right;">Incidents</th>
@@ -2284,17 +2673,26 @@
                 </div>
 
                 <!-- Bottom Row: Heatmap Risk Timeline Matrix -->
-                <div style="background: #161b22; border: 1px solid var(--border-color); border-radius: 6px; padding: 20px; display: flex; flex-direction: column; overflow: hidden;">
-                    <h3 style="margin-top: 0; font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">📅 24-Hour Causal Risk Matrix</h3>
-                    <p style="color: var(--text-muted); font-size: 11px; margin-bottom: 16px; margin-top: 0;">Hourly risk levels mapped by incident type. Cells are colored based on calculated risk weights (Red: High, Yellow/Orange: Medium, Blue: Low, Gray: None). Hover or click cells to drill down.</p>
+                <div
+                    style="background: #161b22; border: 1px solid var(--border-color); border-radius: 6px; padding: 20px; display: flex; flex-direction: column; overflow: hidden;">
+                    <h3
+                        style="margin-top: 0; font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">
+                        📅 24-Hour Causal Risk Matrix</h3>
+                    <p style="color: var(--text-muted); font-size: 11px; margin-bottom: 16px; margin-top: 0;">Hourly
+                        risk levels mapped by incident type. Cells are colored based on calculated risk weights (Red:
+                        High, Yellow/Orange: Medium, Blue: Low, Gray: None). Hover or click cells to drill down.</p>
 
                     <div style="overflow-x: auto; width: 100%;">
-                        <div id="riskMatrixContainer" style="min-width: 900px; display: flex; flex-direction: column; gap: 2px;">
+                        <div id="riskMatrixContainer"
+                            style="min-width: 900px; display: flex; flex-direction: column; gap: 2px;">
                             <!-- Header hour cells -->
                             <div style="display: flex; gap: 2px; margin-bottom: 4px;">
-                                <div style="width: 150px; flex-shrink: 0; font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; text-align: right; padding-right: 12px; align-self: center;">Cause / Hour</div>
+                                <div
+                                    style="width: 150px; flex-shrink: 0; font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; text-align: right; padding-right: 12px; align-self: center;">
+                                    Cause / Hour</div>
                                 <!-- Hour ticks 0 to 23 -->
-                                <div style="display: flex; flex: 1; justify-content: space-between; font-size: 9px; font-weight: 700; color: var(--text-muted); font-family: monospace;">
+                                <div
+                                    style="display: flex; flex: 1; justify-content: space-between; font-size: 9px; font-weight: 700; color: var(--text-muted); font-family: monospace;">
                                     <div style="width: calc(100% / 24); text-align: center;">00</div>
                                     <div style="width: calc(100% / 24); text-align: center;">01</div>
                                     <div style="width: calc(100% / 24); text-align: center;">02</div>
@@ -2329,7 +2727,8 @@
                     </div>
 
                     <!-- Heatmap detail tool info block -->
-                    <div id="riskCellDetails" style="margin-top: 14px; background: #0d1117; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; font-size: 11px; display: none;">
+                    <div id="riskCellDetails"
+                        style="margin-top: 14px; background: #0d1117; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; font-size: 11px; display: none;">
                         <!-- dynamic details -->
                     </div>
                 </div>
@@ -2933,65 +3332,89 @@
 
         // ── 1. GLOBAL LAYOUT ROUTING TREE ENGINE ──────────────────────────────
         window.switchTab = function (tabName) {
-            const ids = ['btnTabLiveMap', 'btnTabForecast', 'btnTabDeployment', 'btnTabAnalytics', 'btnTabResources', 'btnTabControlCenter', 'btnTabApi', 'btnTabDeploymentAnalysis'];
-            const vids = ['viewLiveMap', 'viewForecast', 'viewDeployment', 'viewAnalytics', 'viewResources', 'viewControlCenter', 'viewApi', 'viewDeploymentAnalysis'];
+            // 1. Unified arrays including ALL existing, submission, and auxiliary tabs/views
+            const ids = [
+                'btnTabLiveMap',
+                'btnTabForecast',
+                'btnTabDeployment',
+                'btnTabAnalytics',
+                'btnTabResources',
+                'btnTabSubmitReportandNews',
+                'btnTabControlCenter',
+                'btnTabApi',
+                'btnTabDeploymentAnalysis'
+            ];
 
-            // Clear out prior selected active states completely
+            const vids = [
+                'viewLiveMap',
+                'viewForecast',
+                'viewDeployment',
+                'viewAnalytics',
+                'viewResources',
+                'viewSubmitReportandNews',
+                'viewControlCenter',
+                'viewApi',
+                'viewDeploymentAnalysis'
+            ];
+
+            // 2. Safely clear out active classes across all application panels
             ids.forEach(id => document.getElementById(id)?.classList.remove('active'));
             vids.forEach(id => document.getElementById(id)?.classList.remove('active'));
 
+            // 3. Conditional state route branching activations
             if (tabName === 'liveMap') {
-                document.getElementById('btnTabLiveMap').classList.add('active');
-                document.getElementById('viewLiveMap').classList.add('active');
+                document.getElementById('btnTabLiveMap')?.classList.add('active');
+                document.getElementById('viewLiveMap')?.classList.add('active');
                 if (typeof map !== 'undefined' && map) setTimeout(() => map.invalidateSize(), 50);
 
             } else if (tabName === 'forecast') {
-                document.getElementById('btnTabForecast').classList.add('active');
-                document.getElementById('viewForecast').classList.add('active');
+                document.getElementById('btnTabForecast')?.classList.add('active');
+                document.getElementById('viewForecast')?.classList.add('active');
                 if (typeof closeDrawer === 'function') closeDrawer();
                 if (typeof miniMap !== 'undefined' && miniMap) setTimeout(() => miniMap.invalidateSize(), 150);
 
             } else if (tabName === 'deployment') {
-                document.getElementById('btnTabDeployment').classList.add('active');
-                document.getElementById('viewDeployment').classList.add('active');
+                document.getElementById('btnTabDeployment')?.classList.add('active');
+                document.getElementById('viewDeployment')?.classList.add('active');
                 if (typeof closeDrawer === 'function') closeDrawer();
                 if (typeof renderDeploymentPlan === 'function') renderDeploymentPlan();
                 if (typeof deployMap !== 'undefined' && deployMap) setTimeout(() => deployMap.invalidateSize(), 200);
 
             } else if (tabName === 'analytics') {
-                document.getElementById('btnTabAnalytics').classList.add('active');
-                document.getElementById('viewAnalytics').classList.add('active');
+                document.getElementById('btnTabAnalytics')?.classList.add('active');
+                document.getElementById('viewAnalytics')?.classList.add('active');
                 if (typeof closeDrawer === 'function') closeDrawer();
                 if (typeof renderAnalytics === 'function') setTimeout(() => renderAnalytics(), 80);
 
             } else if (tabName === 'resources') {
-                document.getElementById('btnTabResources').classList.add('active');
-                document.getElementById('viewResources').classList.add('active');
+                document.getElementById('btnTabResources')?.classList.add('active');
+                document.getElementById('viewResources')?.classList.add('active');
                 if (typeof closeDrawer === 'function') closeDrawer();
                 if (typeof refreshResourcesTab === 'function') refreshResourcesTab();
 
             } else if (tabName === 'submitReportsNews') {
-                document.getElementById('btnTabSubmitReportandNews').classList.add('active');
-                document.getElementById('viewSubmitReportandNews').classList.add('active');
+                document.getElementById('btnTabSubmitReportandNews')?.classList.add('active');
+                document.getElementById('viewSubmitReportandNews')?.classList.add('active');
                 if (typeof closeDrawer === 'function') closeDrawer();
 
-            } else if (tabName === 'controlCenter') { // <--- FIXED: Explicit route handler added
-                document.getElementById('btnTabControlCenter').classList.add('active');
-                document.getElementById('viewControlCenter').classList.add('active');
-                closeDrawer();
+            } else if (tabName === 'controlCenter') {
+                document.getElementById('btnTabControlCenter')?.classList.add('active');
+                document.getElementById('viewControlCenter')?.classList.add('active');
+                if (typeof closeDrawer === 'function') closeDrawer();
+
             } else if (tabName === 'api') {
-                document.getElementById('btnTabApi').classList.add('active');
-                document.getElementById('viewApi').classList.add('active');
-                closeDrawer();
+                document.getElementById('btnTabApi')?.classList.add('active');
+                document.getElementById('viewApi')?.classList.add('active');
+                if (typeof closeDrawer === 'function') closeDrawer();
                 if (typeof window.initApiTab === 'function') window.initApiTab();
+
             } else if (tabName === 'deploymentAnalysis') {
-                document.getElementById('btnTabDeploymentAnalysis').classList.add('active');
-                document.getElementById('viewDeploymentAnalysis').classList.add('active');
-                closeDrawer();
+                document.getElementById('btnTabDeploymentAnalysis')?.classList.add('active');
+                document.getElementById('viewDeploymentAnalysis')?.classList.add('active');
+                if (typeof closeDrawer === 'function') closeDrawer();
                 if (typeof window.initDeploymentAnalysisTab === 'function') window.initDeploymentAnalysisTab();
             }
         };
-
         // ── 2. LIFE CYCLE INITIALIZATION AND DATA PIPELINES ───────────────────
         window.addEventListener("DOMContentLoaded", () => {
             initClockTicker();
@@ -3221,7 +3644,7 @@
         ];
 
         let selectedRouteIndex = null;
-        window.initApiTab = function() {
+        window.initApiTab = function () {
             const routeList = document.getElementById("apiRouteList");
             if (!routeList) return;
             routeList.innerHTML = "";
@@ -3365,7 +3788,7 @@
                 const duration = Math.round(t1 - t0);
 
                 statusBadge.textContent = `${res.status} ${res.statusText} (${duration}ms)`;
-                
+
                 if (res.ok) {
                     const json = await res.json();
                     responseText.textContent = JSON.stringify(json, null, 2);
@@ -3394,7 +3817,7 @@
         let deploymentAnalysisMapInstance = null;
         let deploymentAnalysisPolygons = [];
 
-        window.initDeploymentAnalysisTab = function() {
+        window.initDeploymentAnalysisTab = function () {
             if (!deploymentAnalysisMapInstance && typeof L !== 'undefined') {
                 deploymentAnalysisMapInstance = L.map('deploymentAnalysisMap', { attributionControl: false }).setView([12.97, 77.62], 11);
                 const elegantTiles = appState.lightTilesActive
@@ -3432,7 +3855,7 @@
 
                 data.forEach(item => {
                     const color = getRiskColor(item.risk_level);
-                    
+
                     if (item.hull_points && item.hull_points.length >= 3 && deploymentAnalysisMapInstance) {
                         const poly = L.polygon(item.hull_points, {
                             color: color,
@@ -3440,7 +3863,7 @@
                             fillOpacity: 0.25,
                             weight: 2
                         }).addTo(deploymentAnalysisMapInstance);
-                        
+
                         poly.bindPopup(`
                             <div style="font-family: sans-serif; color: #fff; background: #161b22; padding: 4px; font-size: 11px;">
                                 <strong style="color: #58a6ff;">Cluster ID: ${item.cluster_id}</strong><br/>
@@ -3449,7 +3872,7 @@
                                 <strong>Avg clearance:</strong> ${Math.round(item.avg_duration)} mins
                             </div>
                         `);
-                        
+
                         deploymentAnalysisPolygons.push(poly);
                     }
 
@@ -3474,7 +3897,7 @@
             }
         }
 
-        window.zoomToCluster = function(coords) {
+        window.zoomToCluster = function (coords) {
             if (deploymentAnalysisMapInstance && coords && coords[0] && coords[1]) {
                 deploymentAnalysisMapInstance.setView(coords, 13, { animate: true, duration: 1 });
             }
@@ -3529,7 +3952,7 @@
                         for (let hr = 0; hr < 24; hr++) {
                             const key = `${cause}_${hr}`;
                             const cellData = data[key];
-                            
+
                             const cell = document.createElement("div");
                             cell.style.width = "calc(100% / 24)";
                             cell.style.height = "20px";
@@ -3586,7 +4009,7 @@
                 detailsContainer.innerHTML = `
                     <div style="color: var(--text-muted);">
                         <strong>Cause:</strong> <span style="color: #fff; text-transform: uppercase;">${causeName}</span> &nbsp;|&nbsp; 
-                        <strong>Time Window:</strong> <span style="color: #fff;">${formattedHour} - ${String((hour+1)%24).padStart(2, '0')}:00</span> &nbsp;|&nbsp; 
+                        <strong>Time Window:</strong> <span style="color: #fff;">${formattedHour} - ${String((hour + 1) % 24).padStart(2, '0')}:00</span> &nbsp;|&nbsp; 
                         <span style="color: var(--text-muted); font-weight: bold;">No historical risk recorded for this slot.</span>
                     </div>
                 `;
@@ -3599,7 +4022,7 @@
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                     <div>
                         <strong style="color: var(--text-muted);">Cause:</strong> <span style="color: #fff; text-transform: capitalize; font-weight: bold; font-size: 13px;">${causeName}</span> &nbsp;&nbsp;&nbsp;&nbsp;
-                        <strong style="color: var(--text-muted);">Time window:</strong> <span style="color: #fff; font-family: monospace;">${formattedHour} - ${String((hour+1)%24).padStart(2, '0')}:00</span>
+                        <strong style="color: var(--text-muted);">Time window:</strong> <span style="color: #fff; font-family: monospace;">${formattedHour} - ${String((hour + 1) % 24).padStart(2, '0')}:00</span>
                     </div>
                     <div style="display: flex; gap: 15px; align-items: center;">
                         <div>
@@ -3619,7 +4042,7 @@
 
         // Original window.updateMapTheme wrapper update
         const originalMapThemeUpdater = window.updateMapTheme;
-        window.updateMapTheme = function(isLight) {
+        window.updateMapTheme = function (isLight) {
             if (typeof originalMapThemeUpdater === 'function') {
                 originalMapThemeUpdater(isLight);
             }
