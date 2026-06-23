@@ -37,24 +37,17 @@ def get_path(rel_path: str) -> str:
         return str(alt_path)
     return rel_path
 
-MODEL_PATH    = get_path("models/ngboost_traffic_model.pkl")
-ENC_CAUSE     = get_path("models/label_encoder_cause.pkl")
-ENC_PRIORITY  = get_path("models/label_encoder_priority.pkl")
-CSV_PATH      = get_path("data/processed_astram_with_graph_AND_history.csv")
+# ── Load Encoders and Model from Shared Singleton ──────────────────────────────
+from service.prediction_model.model_loader import TrafficModelLoader
 
-# ── Load Encoders and Model ───────────────────────────────────────────────────
-ngboost_model = joblib.load(MODEL_PATH)
-le_cause      = joblib.load(ENC_CAUSE)
-le_priority   = joblib.load(ENC_PRIORITY)
+loader = TrafficModelLoader.get_models()
 
-# ── PART 1 — LOAD DATASET AS SPATIAL INDEX ────────────────────────────────────
-spatial_cols = [f"spatial_emb_{i}" for i in range(16)]
-cols_to_load = [
-    "latitude", "longitude", "junction",
-    "historical_incident_count", "historical_median_duration"
-] + spatial_cols
+ngboost_model = loader.ai_model
+le_cause      = loader.encoder_cause
+le_priority   = loader.encoder_priority
 
-SPATIAL_DB = pd.read_csv(CSV_PATH, usecols=cols_to_load)
+# Use the already loaded dataset
+SPATIAL_DB = loader.df_nodes
 
 # Drop rows where latitude or longitude is 0 or NaN
 SPATIAL_DB = SPATIAL_DB.dropna(subset=['latitude', 'longitude'])
@@ -62,6 +55,7 @@ SPATIAL_DB = SPATIAL_DB[(SPATIAL_DB['latitude'] != 0.0) & (SPATIAL_DB['longitude
 SPATIAL_DB = SPATIAL_DB.reset_index(drop=True)
 
 # Precompute global fallback
+spatial_cols = [f"spatial_emb_{i}" for i in range(16)]
 GLOBAL_AVG_EMBEDDINGS    = SPATIAL_DB[spatial_cols].mean().values
 GLOBAL_AVG_HIST_COUNT    = float(SPATIAL_DB['historical_incident_count'].mean())
 GLOBAL_AVG_HIST_DURATION = float(SPATIAL_DB['historical_median_duration'].mean())

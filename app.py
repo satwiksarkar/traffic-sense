@@ -84,19 +84,9 @@ def create_app(data_base_dir, frontend_dir):
     app.traffic_report_manager = TrafficReportManager(data_base_dir)
     app.news_report_manager = NewsReportManager(data_base_dir)
 
-    # Initialize city graph once at app startup for route calculations
-    print("[App Initialization]: Loading Bangalore city graph...")
-    city_graph = create_city_graph(
-        os.path.join(ROOT_DIR, "map_cache"), city_name="Bangalore"
-    )
-    if city_graph:
-        app.route_manager = RouteManager(city_graph)
-        print("[App Initialization]: ✓ Route manager initialized with city graph")
-    else:
-        print(
-            "[App Initialization]: ⚠ Failed to load city graph - routing will be limited"
-        )
-        app.route_manager = None
+    # Set placeholder for lazy loading RouteManager to optimize memory footprint
+    app.route_manager = None
+    app.route_manager_loaded = False
 
     # Start the daemonized background loop thread
     sync_thread = threading.Thread(
@@ -108,6 +98,23 @@ def create_app(data_base_dir, frontend_dir):
 
 
 app = create_app(DATA_BASE_DIR, FRONTEND_FOLDER)
+
+
+def get_route_manager():
+    """Lazy loads and returns the RouteManager instance to save startup memory."""
+    if not getattr(app, "route_manager_loaded", False):
+        print("[Lazy Ingestion]: Loading Bangalore city graph on demand...")
+        city_graph = create_city_graph(
+            os.path.join(ROOT_DIR, "map_cache"), city_name="Bangalore"
+        )
+        if city_graph:
+            app.route_manager = RouteManager(city_graph)
+            print("[Lazy Ingestion]: ✓ Route manager initialized with city graph")
+        else:
+            print("[Lazy Ingestion]: ⚠ Failed to load city graph - routing will be limited")
+            app.route_manager = None
+        app.route_manager_loaded = True
+    return app.route_manager
 
 
 @app.after_request
@@ -281,14 +288,14 @@ def get_assignments():
     """API endpoint providing dispatch routes and localized station inventory counts."""
     city = request.args.get("city", "Bangalore")
 
-    # Use the pre-initialized route manager from app context
-    if not app.route_manager:
+    route_mgr = get_route_manager()
+    if not route_mgr:
         return jsonify({"error": "Route manager not initialized"}), 500
 
     assignment_mgr = TrafficAssignmentManager(
         report_manager=app.traffic_report_manager,
         news_manager=app.news_report_manager,
-        route_manager=app.route_manager,
+        route_manager=route_mgr,
     )
 
     active_assignments = assignment_mgr.assign_reports(city_name=city)
@@ -363,7 +370,8 @@ def route_diversion():
     report_id = request.args.get("report_id")
     barricaded = request.args.get("barricaded") == "true"
     
-    if not app.route_manager:
+    route_mgr = get_route_manager()
+    if not route_mgr:
         return jsonify({"error": "Route manager not initialized"}), 500
         
     try:
@@ -380,7 +388,7 @@ def route_diversion():
         
         from service.route_recomend.util import shortest_path as sp_with_penalties
         route_coords = sp_with_penalties(
-            app.route_manager.graph, 
+            route_mgr.graph, 
             origin, 
             destination, 
             active_incidents=other_incidents
@@ -400,7 +408,8 @@ def route_planner():
     dest_lat = request.args.get("dest_lat")
     dest_lng = request.args.get("dest_lng")
 
-    if not app.route_manager:
+    route_mgr = get_route_manager()
+    if not route_mgr:
         return jsonify({"error": "Route manager not initialized"}), 500
 
     try:
@@ -412,7 +421,7 @@ def route_planner():
 
         from service.route_recomend.util import shortest_path_with_traffic
         result = shortest_path_with_traffic(
-            app.route_manager.graph,
+            route_mgr.graph,
             origin,
             destination,
             active_incidents=active_incidents
@@ -430,7 +439,8 @@ def get_route_status():
     """Returns route status with full polylines for active incidents."""
     city = request.args.get("city", "Bangalore")
 
-    if not app.route_manager:
+    route_mgr = get_route_manager()
+    if not route_mgr:
         return jsonify({"error": "Route manager not initialized", "incidents": []}), 200
 
     active_incidents = app.traffic_report_manager.get_active_incidents()
@@ -451,7 +461,7 @@ def get_route_status():
 
         # Get route from route manager
         try:
-            assignment = app.route_manager.assign_station_to_incident(
+            assignment = route_mgr.assign_station_to_incident(
                 incident_lat=lat_f, incident_lon=lng_f, city_name=city
             )
 

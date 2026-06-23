@@ -10,6 +10,33 @@ except AttributeError:
     pass
 
 
+def _prune_graph(G):
+    """Prunes unused attributes from the graph to dramatically reduce RAM usage."""
+    if G is None:
+        return G
+    print("🧹 Pruning unused map attributes to optimize memory...")
+    edges_pruned = 0
+    nodes_pruned = 0
+    # Keep only these attributes on edges to perform routing calculations
+    edge_keys_to_keep = {'geometry', 'length', 'speed_kph', 'travel_time'}
+    for u, v, k, data in G.edges(keys=True, data=True):
+        for key in list(data.keys()):
+            if key not in edge_keys_to_keep:
+                del data[key]
+                edges_pruned += 1
+    # Keep only these attributes on nodes
+    node_keys_to_keep = {'x', 'y'}
+    for n, data in G.nodes(data=True):
+        for key in list(data.keys()):
+            if key not in node_keys_to_keep:
+                del data[key]
+                nodes_pruned += 1
+    print(f"🧹 Pruned {edges_pruned} edge attributes and {nodes_pruned} node attributes.")
+    import gc
+    gc.collect()
+    return G
+
+
 def create_city_graph(DATA_BASE_DIR, city_name="Bangalore", network_type="drive"):
     """
     Checks for a locally saved Pickle (.pkl) file first for instant loading.
@@ -32,7 +59,7 @@ def create_city_graph(DATA_BASE_DIR, city_name="Bangalore", network_type="drive"
         try:
             G_projected = joblib.load(pkl_path)
             print(f"✅ Loaded from pickle successfully! Nodes: {len(G_projected.nodes)} | Edges: {len(G_projected.edges)}")
-            return G_projected
+            return _prune_graph(G_projected)
         except Exception as e:
             print(f"⚠️ Error loading cached pickle: {e}, falling back to GraphML...")
 
@@ -59,7 +86,7 @@ def create_city_graph(DATA_BASE_DIR, city_name="Bangalore", network_type="drive"
                 print(f"⚠️ Failed to cache pickle: {ex}")
                 
             print(f"✅ Loaded successfully! Nodes: {len(G_projected.nodes)} | Edges: {len(G_projected.edges)}")
-            return G_projected
+            return _prune_graph(G_projected)
         except Exception as e:
             print(f"⚠️ Error loading cached GraphML, falling back to download: {e}")
 
@@ -97,7 +124,7 @@ def create_city_graph(DATA_BASE_DIR, city_name="Bangalore", network_type="drive"
             print(f"⚠️ Failed to cache pickle: {ex}")
             
         print(f"✅ Setup complete. Nodes: {len(G_projected.nodes)} | Edges: {len(G_projected.edges)}")
-        return G_projected
+        return _prune_graph(G_projected)
 
     except Exception as e:
         print(f"❌ Failed to build or store network matrix for '{city_name}': {str(e)}")
