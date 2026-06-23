@@ -95,21 +95,38 @@ def create_app(data_base_dir, frontend_dir):
 app = create_app(DATA_BASE_DIR, FRONTEND_FOLDER)
 
 
+route_manager_lock = threading.Lock()
+
 def get_route_manager():
     """Lazy loads and returns the RouteManager instance to save startup memory."""
+    global route_manager_lock
     if not getattr(app, "route_manager_loaded", False):
-        print("[Lazy Ingestion]: Loading Bangalore city graph on demand...")
-        city_graph = create_city_graph(
-            os.path.join(ROOT_DIR, "map_cache"), city_name="Bangalore"
-        )
-        if city_graph:
-            app.route_manager = RouteManager(city_graph)
-            print("[Lazy Ingestion]: ✓ Route manager initialized with city graph")
-        else:
-            print("[Lazy Ingestion]: ⚠ Failed to load city graph - routing will be limited")
-            app.route_manager = None
-        app.route_manager_loaded = True
+        with route_manager_lock:
+            if not getattr(app, "route_manager_loaded", False):
+                # Check if running in a memory-limited environment like Render
+                limit_ram = os.getenv("RENDER") is not None or os.getenv("LIMIT_RAM", "false").lower() == "true"
+                city_graph = None
+                
+                if limit_ram:
+                    print("[Lazy Ingestion]: ⚠️ RAM limit detected (Render environment). Skipping heavy map graph loading to prevent 502/OOM crashes.")
+                else:
+                    print("[Lazy Ingestion]: Loading Bangalore city graph on demand...")
+                    try:
+                        city_graph = create_city_graph(
+                            os.path.join(ROOT_DIR, "map_cache"), city_name="Bangalore"
+                        )
+                    except Exception as e:
+                        print(f"[Lazy Ingestion Error]: Failed to create city graph: {e}")
+                
+                # Always initialize RouteManager (with None if limited) so assignments endpoint doesn't fail
+                app.route_manager = RouteManager(city_graph)
+                if city_graph:
+                    print("[Lazy Ingestion]: ✓ Route manager initialized with city graph")
+                else:
+                    print("[Lazy Ingestion]: ⚠ Route manager initialized without city graph (fallback routing active)")
+                app.route_manager_loaded = True
     return app.route_manager
+
 
 
 @app.after_request
@@ -373,6 +390,10 @@ def route_diversion():
         origin = (float(origin_lat), float(origin_lng))
         destination = (float(dest_lat), float(dest_lng))
         
+        if not route_mgr.graph:
+            print("[Diversion Route Warning]: Graph not loaded (RAM limited). Returning direct path fallback.")
+            return jsonify({"success": True, "route": [origin, destination]})
+        
         # Fetch other active reports to penalize
         all_incidents = app.traffic_report_manager.get_active_incidents()
         
@@ -410,6 +431,37 @@ def route_planner():
     try:
         origin = (float(origin_lat), float(origin_lng))
         destination = (float(dest_lat), float(dest_lng))
+
+        if not route_mgr.graph:
+            print("[Route Planner Warning]: Graph not loaded (RAM limited). Returning direct path fallback.")
+            import math
+            lat1, lon1 = origin
+            lat2, lon2 = destination
+            # Simple haversine calculation
+            R = 6371000.0  # Earth radius in meters
+            dlat = math.radians(lat2 - lat1)
+            dlon = math.radians(lon2 - lon1)
+            a = math.sin(dlat / 2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2)**2
+            c = 2 * math.asin(math.sqrt(a))
+            dist_m = R * c
+            duration_s = dist_m / (40.0 / 3.6) # assume 40 km/h speed
+            
+            fallback_result = {
+                "segments": [
+                    {
+                        "coords": [[lat1, lon1], [lat2, lon2]],
+                        "color": "#136327",
+                        "weight": 4,
+                        "speed": 40.0,
+                        "status": "Free Flow (Fallback)",
+                        "length_m": round(dist_m, 1),
+                        "duration_s": round(duration_s, 1)
+                    }
+                ],
+                "total_distance_km": round(dist_m / 1000.0, 2),
+                "total_duration_min": round(duration_s / 60.0, 1)
+            }
+            return jsonify({"success": True, "result": fallback_result})
 
         # Fetch all active incidents to penalize
         active_incidents = app.traffic_report_manager.get_active_incidents()
