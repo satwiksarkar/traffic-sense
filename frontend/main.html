@@ -5902,7 +5902,7 @@
 
     <script>
         // --- Core Endpoint Mapping Configuration Matrix ---
-        const BASE_URL = "http://127.0.0.1:5001";
+        const BASE_URL = window.location.protocol === 'file:' ? 'http://127.0.0.1:5001' : window.location.origin;
 
         // --- Master Global State Registry Store ---
         window.appState = window.appState || {
@@ -6338,7 +6338,7 @@
             responseText.style.color = "var(--text-muted)";
             statusBadge.textContent = "";
 
-            const FASTAPI_BASE_URL = BASE_URL.includes(":5001") ? BASE_URL.replace(":5001", ":8000") : "http://127.0.0.1:8000";
+            const FASTAPI_BASE_URL = BASE_URL.includes(":5001") ? BASE_URL.replace(":5001", ":8000") : BASE_URL;
             const host = route.isFastApi ? FASTAPI_BASE_URL : BASE_URL;
             let targetUrl = host + route.url;
 

@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: traffic-sense
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: MAPPLS_API_KEY
+        sync: false
+        description: "API Key for Mappls routing"
+      - key: GEMINI_API_KEY
+        sync: false
+        description: "API Key for Google Gemini LLM"

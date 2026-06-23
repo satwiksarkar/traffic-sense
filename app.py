@@ -21,7 +21,8 @@ load_dotenv(os.path.join(ROOT_DIR, "backend", ".env"))
 FRONTEND_FOLDER = os.path.join(ROOT_DIR, "frontend")
 DATA_BASE_DIR = os.path.join(ROOT_DIR, "database")
 
-FASTAPI_URL = "http://127.0.0.1:8000"
+PORT = os.getenv("PORT", "8000")
+FASTAPI_URL = f"http://127.0.0.1:{PORT}"
 
 import sys
 
@@ -591,12 +592,9 @@ def get_traffic_analytics():
       "error": "string"
     }
     """
-    # Extract just the hostname (minus the port)
-    host_header = request.headers.get("Host") or "127.0.0.1"
-    hostname = host_header.split(":")[0]
-
-    # Reconstruct it to force port 8000
-    FASTAPI_URL = f"http://{hostname}:8000"
+    # Use localhost connection to avoid issues with host proxy on Render
+    port = os.getenv("PORT", "8000")
+    FASTAPI_URL = f"http://127.0.0.1:{port}"
 
     try:
         fastapi_response = requests.get(f"{FASTAPI_URL}/analytics/summary", timeout=5)
@@ -630,12 +628,9 @@ def get_predictive_predictions_history():
       "error": "string"
     }
     """
-    # Extract just the hostname (minus the port)
-    host_header = request.headers.get("Host") or "127.0.0.1"
-    hostname = host_header.split(":")[0]
-
-    # Reconstruct it to force port 8000
-    FASTAPI_URL = f"http://{hostname}:8000"
+    # Use localhost connection to avoid issues with host proxy on Render
+    port = os.getenv("PORT", "8000")
+    FASTAPI_URL = f"http://127.0.0.1:{port}"
 
     try:
         fastapi_response = requests.get(f"{FASTAPI_URL}/api/locations", timeout=5)
