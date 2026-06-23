@@ -1,5 +1,5 @@
+import os
 import feedparser
-import spacy
 import json
 import re
 import urllib.parse
@@ -47,37 +47,61 @@ EVENT_TYPES = {
 # NLP MODEL & FALLBACK SETUP
 # ==========================================================
 
-try:
-    nlp = spacy.load("en_core_web_sm")
-except OSError:
-    print("[System Log]: spaCy 'en_core_web_sm' model not found. Attempting download...")
-    from spacy.cli import download
+# Force fallback NLP on Render to stay within 512MB RAM limits
+use_fallback = os.getenv("RENDER") is not None or os.getenv("LIMIT_RAM", "false").lower() == "true"
+
+if use_fallback:
+    print("[System Log]: Running on memory-limited environment. Using fallback rule-based location/entity detector.")
+    class FallbackNLP:
+        def __call__(self, text):
+            class Entity:
+                def __init__(self, t, label):
+                    self.text = t
+                    self.label_ = label
+            class Doc:
+                def __init__(self, txt):
+                    self.ents = []
+                    words = txt.split()
+                    ignored = {"India", "Google", "News", "The", "Today", "And", "For", "With", "Traffic", "Road"}
+                    for w in words:
+                        w_clean = w.strip(".,()\"';:-")
+                        if w_clean and w_clean[0].isupper() and len(w_clean) > 2:
+                            if w_clean not in ignored:
+                                self.ents.append(Entity(w_clean, "GPE"))
+            return Doc(text)
+    nlp = FallbackNLP()
+else:
     try:
-        download("en_core_web_sm")
+        import spacy
         nlp = spacy.load("en_core_web_sm")
-    except Exception as e:
-        print(f"[System Log]: Failed to download 'en_core_web_sm': {e}")
-        print("[System Log]: Utilizing fallback rule-based location/entity detector.")
-        
-        class FallbackNLP:
-            def __call__(self, text):
-                class Entity:
-                    def __init__(self, t, label):
-                        self.text = t
-                        self.label_ = label
-                class Doc:
-                    def __init__(self, txt):
-                        self.ents = []
-                        words = txt.split()
-                        ignored = {"India", "Google", "News", "The", "Today", "And", "For", "With", "Traffic", "Road"}
-                        for w in words:
-                            w_clean = w.strip(".,()\"';:-")
-                            if w_clean and w_clean[0].isupper() and len(w_clean) > 2:
-                                if w_clean not in ignored:
-                                    self.ents.append(Entity(w_clean, "GPE"))
-                return Doc(text)
-        
-        nlp = FallbackNLP()
+    except (ImportError, OSError):
+        print("[System Log]: spaCy 'en_core_web_sm' model not found. Attempting download...")
+        try:
+            from spacy.cli import download
+            download("en_core_web_sm")
+            import spacy
+            nlp = spacy.load("en_core_web_sm")
+        except Exception as e:
+            print(f"[System Log]: Failed to download 'en_core_web_sm': {e}")
+            print("[System Log]: Utilizing fallback rule-based location/entity detector.")
+            class FallbackNLP:
+                def __call__(self, text):
+                    class Entity:
+                        def __init__(self, t, label):
+                            self.text = t
+                            self.label_ = label
+                    class Doc:
+                        def __init__(self, txt):
+                            self.ents = []
+                            words = txt.split()
+                            ignored = {"India", "Google", "News", "The", "Today", "And", "For", "With", "Traffic", "Road"}
+                            for w in words:
+                                w_clean = w.strip(".,()\"';:-")
+                                if w_clean and w_clean[0].isupper() and len(w_clean) > 2:
+                                    if w_clean not in ignored:
+                                        self.ents.append(Entity(w_clean, "GPE"))
+                    return Doc(text)
+            nlp = FallbackNLP()
 
 # ==========================================================
 # FETCH NEWS
