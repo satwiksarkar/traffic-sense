@@ -154,7 +154,7 @@ ehthumbs.db
 Desktop.ini
 *.pkl
 !map_cache/bangalore_drive.pkl
-backend/models/*.pkl
+!backend/models/*.pkl
 database/*.db
 backend/cache/
 map_cache/*.graphml

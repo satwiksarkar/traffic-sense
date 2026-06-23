@@ -18,10 +18,11 @@ load_dotenv(dotenv_path=env_path)
 GOOGLE_API_KEY = os.getenv("GEMINI_API_KEY")
 
 if not GOOGLE_API_KEY:
-    raise ValueError("CRITICAL ERROR: API Key not found. Check your .env file!")
-
-# ✅ NEW: Initialize the central GenAI client
-client = genai.Client(api_key=GOOGLE_API_KEY)
+    print("[LLM Warning] GEMINI_API_KEY not found in environment. LLM features will use fallback.")
+    client = None
+else:
+    # ✅ NEW: Initialize the central GenAI client
+    client = genai.Client(api_key=GOOGLE_API_KEY)
 
 
 class TrafficIntelligence(BaseModel): # Inherit from Pydantic's BaseModel
@@ -51,6 +52,13 @@ def parse_traffic_description(description_text: str) -> dict:
         return {
             "severity_multiplier": 1.0,
             "hazards_present": ["none"],
+            "special_assets_needed": ["standard_patrol"],
+        }
+
+    if not client:
+        return {
+            "severity_multiplier": 1.0,
+            "hazards_present": ["no_api_key"],
             "special_assets_needed": ["standard_patrol"],
         }
 
