@@ -1,13 +1,12 @@
 import os
 import sys
-import networkx as nx
-import osmnx as ox
 
 try:
     sys.stdout.reconfigure(encoding='utf-8')
     sys.stderr.reconfigure(encoding='utf-8')
 except AttributeError:
     pass
+
 
 
 def _prune_graph(G):
@@ -43,6 +42,7 @@ def create_city_graph(DATA_BASE_DIR, city_name="Bangalore", network_type="drive"
     If not found, falls back to GraphML, unprojects, caches it to Pickle, and returns.
     """
     import joblib
+    import osmnx as ox
 
     # Sanitize name for file system storage
     base_name = f"{city_name.lower().replace(' ', '_')}_{network_type}"
@@ -131,6 +131,8 @@ def create_city_graph(DATA_BASE_DIR, city_name="Bangalore", network_type="drive"
         return None
 
 def shortest_path(G, source, destination, active_incidents=None):
+    import networkx as nx
+    import osmnx as ox
     # Unproject the graph if it is in UTM/meters projection to ensure decimal degree computations
     from pyproj import CRS
     crs = G.graph.get("crs")
@@ -195,6 +197,8 @@ def shortest_path_with_traffic(G, source, destination, active_incidents=None):
     Calculates the shortest/optimum path between source and destination using OSMnx,
     penalizing edges near active incidents and returning segments styled with traffic colors.
     """
+    import networkx as nx
+    import osmnx as ox
     from pyproj import CRS
     crs = G.graph.get("crs")
     is_proj = CRS.from_user_input(crs).is_projected if crs else False

@@ -37,28 +37,33 @@ def get_path(rel_path: str) -> str:
         return str(alt_path)
     return rel_path
 
-# ── Load Encoders and Model from Shared Singleton ──────────────────────────────
-from service.prediction_model.model_loader import TrafficModelLoader
+# ── Load Encoders and Model from Shared Singleton (LAZY LOADED) ────────────────
+_lazy_data = {}
 
-loader = TrafficModelLoader.get_models()
+def _get_lazy_data():
+    if not _lazy_data:
+        from service.prediction_model.model_loader import TrafficModelLoader
+        loader = TrafficModelLoader.get_models()
+        
+        spatial_db = loader.df_nodes
+        # Drop rows where latitude or longitude is 0 or NaN
+        spatial_db = spatial_db.dropna(subset=['latitude', 'longitude'])
+        spatial_db = spatial_db[(spatial_db['latitude'] != 0.0) & (spatial_db['longitude'] != 0.0)]
+        spatial_db = spatial_db.reset_index(drop=True)
+        
+        spatial_cols = [f"spatial_emb_{i}" for i in range(16)]
+        
+        _lazy_data["ngboost_model"] = loader.ai_model
+        _lazy_data["le_cause"] = loader.encoder_cause
+        _lazy_data["le_priority"] = loader.encoder_priority
+        _lazy_data["spatial_db"] = spatial_db
+        _lazy_data["spatial_cols"] = spatial_cols
+        _lazy_data["global_avg_embeddings"] = spatial_db[spatial_cols].mean().values
+        _lazy_data["global_avg_hist_count"] = float(spatial_db['historical_incident_count'].mean())
+        _lazy_data["global_avg_hist_duration"] = float(spatial_db['historical_median_duration'].mean())
+        
+    return _lazy_data
 
-ngboost_model = loader.ai_model
-le_cause      = loader.encoder_cause
-le_priority   = loader.encoder_priority
-
-# Use the already loaded dataset
-SPATIAL_DB = loader.df_nodes
-
-# Drop rows where latitude or longitude is 0 or NaN
-SPATIAL_DB = SPATIAL_DB.dropna(subset=['latitude', 'longitude'])
-SPATIAL_DB = SPATIAL_DB[(SPATIAL_DB['latitude'] != 0.0) & (SPATIAL_DB['longitude'] != 0.0)]
-SPATIAL_DB = SPATIAL_DB.reset_index(drop=True)
-
-# Precompute global fallback
-spatial_cols = [f"spatial_emb_{i}" for i in range(16)]
-GLOBAL_AVG_EMBEDDINGS    = SPATIAL_DB[spatial_cols].mean().values
-GLOBAL_AVG_HIST_COUNT    = float(SPATIAL_DB['historical_incident_count'].mean())
-GLOBAL_AVG_HIST_DURATION = float(SPATIAL_DB['historical_median_duration'].mean())
 
 # ── PART 2 — HAVERSINE DISTANCE FUNCTION ──────────────────────────────────────
 def haversine(lat1, lon1, lat2, lon2) -> float:
@@ -78,16 +83,23 @@ def resolve_spatial_embeddings(lat: float, lng: float) -> dict:
     Calculates distances from (lat, lng) to every row in SPATIAL_DB
     using vectorised numpy operations (not a Python loop).
     """
+    data = _get_lazy_data()
+    spatial_db = data["spatial_db"]
+    spatial_cols = data["spatial_cols"]
+    global_avg_embeddings = data["global_avg_embeddings"]
+    global_avg_hist_count = data["global_avg_hist_count"]
+    global_avg_hist_duration = data["global_avg_hist_duration"]
+
     # Step 1: Compute distance from input point to all rows in SPATIAL_DB
-    dlat = np.radians(SPATIAL_DB['latitude'] - lat)
-    dlon = np.radians(SPATIAL_DB['longitude'] - lng)
-    a = np.sin(dlat/2)**2 + np.cos(np.radians(lat)) * np.cos(np.radians(SPATIAL_DB['latitude'])) * np.sin(dlon/2)**2
+    dlat = np.radians(spatial_db['latitude'] - lat)
+    dlon = np.radians(spatial_db['longitude'] - lng)
+    a = np.sin(dlat/2)**2 + np.cos(np.radians(lat)) * np.cos(np.radians(spatial_db['latitude'])) * np.sin(dlon/2)**2
     distances = 6371000.0 * 2.0 * np.arcsin(np.sqrt(a))
     
     # Step 2: Find the nearest row and its distance
     nearest_idx = distances.idxmin()
     nearest_distance = float(distances[nearest_idx])
-    nearest_row = SPATIAL_DB.loc[nearest_idx]
+    nearest_row = spatial_db.loc[nearest_idx]
     nearest_junction_name = str(nearest_row['junction']) if pd.notna(nearest_row['junction']) else ""
 
     # Step 3: EXACT MATCH — if nearest_distance <= 500 metres:
@@ -99,11 +111,11 @@ def resolve_spatial_embeddings(lat: float, lng: float) -> dict:
         # If NaN, fallback to global averages
         if np.isnan(embeddings).any():
             nan_mask = np.isnan(embeddings)
-            embeddings[nan_mask] = GLOBAL_AVG_EMBEDDINGS[nan_mask]
+            embeddings[nan_mask] = global_avg_embeddings[nan_mask]
         if np.isnan(hist_count):
-            hist_count = GLOBAL_AVG_HIST_COUNT
+            hist_count = global_avg_hist_count
         if np.isnan(hist_duration):
-            hist_duration = GLOBAL_AVG_HIST_DURATION
+            hist_duration = global_avg_hist_duration
 
         return {
             "embeddings": embeddings,
@@ -118,7 +130,7 @@ def resolve_spatial_embeddings(lat: float, lng: float) -> dict:
     else:
         # Find all rows within 1000 metres (1km).
         nearby_mask = distances <= 1000.0
-        nearby = SPATIAL_DB[nearby_mask]
+        nearby = spatial_db[nearby_mask]
         
         if len(nearby) >= 1:
             embeddings = nearby[spatial_cols].mean().values.astype(float)
@@ -128,11 +140,11 @@ def resolve_spatial_embeddings(lat: float, lng: float) -> dict:
             # If NaN, fallback to global averages
             if np.isnan(embeddings).any():
                 nan_mask = np.isnan(embeddings)
-                embeddings[nan_mask] = GLOBAL_AVG_EMBEDDINGS[nan_mask]
+                embeddings[nan_mask] = global_avg_embeddings[nan_mask]
             if np.isnan(hist_count):
-                hist_count = GLOBAL_AVG_HIST_COUNT
+                hist_count = global_avg_hist_count
             if np.isnan(hist_duration):
-                hist_duration = GLOBAL_AVG_HIST_DURATION
+                hist_duration = global_avg_hist_duration
 
             return {
                 "embeddings": embeddings,
@@ -145,9 +157,9 @@ def resolve_spatial_embeddings(lat: float, lng: float) -> dict:
         else:
             # If nearby is empty (truly isolated location):
             return {
-                "embeddings": GLOBAL_AVG_EMBEDDINGS.astype(float),
-                "historical_incident_count": GLOBAL_AVG_HIST_COUNT,
-                "historical_median_duration": GLOBAL_AVG_HIST_DURATION,
+                "embeddings": global_avg_embeddings.astype(float),
+                "historical_incident_count": global_avg_hist_count,
+                "historical_median_duration": global_avg_hist_duration,
                 "method": "global_average",
                 "nearest_junction": "global_average",
                 "distance_m": nearest_distance
@@ -158,6 +170,12 @@ def build_feature_vector(incident: IncidentInput) -> tuple[np.ndarray, dict]:
     """
     Assemble the feature vector in exact order (21 features) and resolve embeddings if needed.
     """
+    data = _get_lazy_data()
+    le_cause = data["le_cause"]
+    le_priority = data["le_priority"]
+    global_avg_hist_count = data["global_avg_hist_count"]
+    global_avg_hist_duration = data["global_avg_hist_duration"]
+
     # Check if spatial embeddings are provided in the incident input.
     # A value is "provided" if spatial_emb_0 is not None.
     if incident.spatial_emb_0 is not None:
@@ -174,8 +192,8 @@ def build_feature_vector(incident: IncidentInput) -> tuple[np.ndarray, dict]:
             "nearest_junction": incident.junction or "provided_by_client",
             "distance_m": 0.0
         }
-        hist_count = incident.historical_incident_count if incident.historical_incident_count is not None else GLOBAL_AVG_HIST_COUNT
-        hist_duration = incident.historical_median_duration if incident.historical_median_duration is not None else GLOBAL_AVG_HIST_DURATION
+        hist_count = incident.historical_incident_count if incident.historical_incident_count is not None else global_avg_hist_count
+        hist_duration = incident.historical_median_duration if incident.historical_median_duration is not None else global_avg_hist_duration
     else:
         resolved = resolve_spatial_embeddings(incident.latitude, incident.longitude)
         emb = resolved["embeddings"]
@@ -220,6 +238,9 @@ def predict_duration(incident: IncidentInput) -> dict:
     """
     Predict traffic incident duration using NGBoost model and spatial indexing features.
     """
+    data = _get_lazy_data()
+    ngboost_model = data["ngboost_model"]
+
     feature_vector, spatial_info = build_feature_vector(incident)
     predicted_mins = float(ngboost_model.predict(feature_vector)[0])
     

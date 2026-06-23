@@ -1,8 +1,6 @@
 import os
 import json
 import math
-import networkx as nx
-from geopy.geocoders import Nominatim
 from .util import shortest_path
 
 class RouteManager:
@@ -93,6 +91,7 @@ class RouteManager:
     
     @staticmethod
     def get_city(lat, lon):
+        from geopy.geocoders import Nominatim
         geolocator = Nominatim(user_agent="traffic_app")
         location = geolocator.reverse((lat, lon), exactly_one=True)
         address = location.raw.get("address", {})

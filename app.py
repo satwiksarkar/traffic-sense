@@ -41,12 +41,7 @@ if backend_dir not in sys.path:
 if backend_pkg_dir not in sys.path:
     sys.path.insert(0, backend_pkg_dir)
 
-# ── NOW RUN YOUR ORIGINAL IMPORTS WITHOUT ANY ALTERATIONS ──
-from model import resolve_spatial_embeddings, predict_duration
-# From here down, the rest of your original imports...
-
-# ── NOW YOUR ORIGINAL IMPORTS WILL WORK CLEANLY ──
-# From here down, your existing imports continue...
+# Unused model imports removed to enable lazy loading optimization
 
 # Import handlers safely
 from service.db.db_handler import TrafficReportManager, NewsReportManager
