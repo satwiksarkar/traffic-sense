@@ -1139,7 +1139,7 @@
                     }
                 }
 
-                /* Left Side: News Feed Panel */
+                /* Left Side Panel */
                 .fc-news-sidebar {
                     background-color: var(--panel-bg);
                     border: 1px solid var(--border-color);
@@ -1206,7 +1206,7 @@
                     overflow: hidden;
                 }
 
-                /* Right Side: Prediction Metrics Workspace */
+                /* Right Workspace Panels */
                 .fc-results-pane {
                     display: flex;
                     flex-direction: column;
@@ -1215,21 +1215,22 @@
                     padding-right: 4px;
                 }
 
+                /* Metric Matrix System layouts */
                 .fc-hero-metric-grid {
                     display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-                    gap: 12px;
+                    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+                    gap: 10px;
                 }
 
                 .fc-metric-card {
                     background-color: var(--panel-bg-hover);
                     border: 1px solid var(--border-color);
-                    padding: 14px;
+                    padding: 12px;
                     border-radius: 6px;
                 }
 
                 .fc-metric-card .lbl {
-                    font-size: 11px;
+                    font-size: 10px;
                     color: var(--text-muted);
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
@@ -1237,7 +1238,7 @@
                 }
 
                 .fc-metric-card .val {
-                    font-size: 18px;
+                    font-size: 16px;
                     font-weight: 700;
                     color: var(--text-primary);
                 }
@@ -1266,7 +1267,7 @@
                     height: 8px;
                     border-radius: 4px;
                     position: relative;
-                    margin: 16px 0 6px 0;
+                    margin: 14px 0 6px 0;
                 }
 
                 .fc-interval-fill {
@@ -1282,14 +1283,60 @@
                 .fc-insight-box {
                     background: rgba(88, 166, 255, 0.03);
                     border: 1px dashed rgba(88, 166, 255, 0.25);
-                    padding: 14px;
+                    padding: 12px;
                     border-radius: 6px;
                     margin-top: 12px;
+                }
+
+                /* Structured Token Badges styling */
+                .fc-badge-container {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 6px;
+                    margin-top: 6px;
+                }
+
+                .fc-badge {
+                    font-size: 11px;
+                    font-family: monospace;
+                    padding: 3px 8px;
+                    border-radius: 4px;
+                    font-weight: 500;
+                }
+
+                .badge-hazard {
+                    background: rgba(248, 81, 73, 0.1);
+                    border: 1px solid rgba(248, 81, 73, 0.25);
+                    color: #ff7b72;
+                }
+
+                .badge-diversion {
+                    background: rgba(56, 139, 253, 0.1);
+                    border: 1px solid rgba(56, 139, 253, 0.25);
+                    color: #58a6ff;
+                }
+
+                .badge-spatial {
+                    background: rgba(242, 211, 89, 0.08);
+                    border: 1px solid rgba(242, 211, 89, 0.2);
+                    color: #f2d359;
+                    font-size: 11px;
+                }
+
+                /* Timeline Monitor Row blocks */
+                .fc-timeline-row {
+                    display: flex;
+                    justify-content: space-between;
+                    background: rgba(255, 255, 255, 0.02);
+                    padding: 8px 12px;
+                    border-radius: 4px;
+                    border: 1px solid var(--border-color);
+                    font-size: 12px;
+                    margin-top: 8px;
                 }
             </style>
 
             <div class="fc-layout-wrapper">
-
                 <div class="fc-news-sidebar">
                     <div class="fc-sidebar-header">
                         <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">Active News
@@ -1308,82 +1355,139 @@
 
                 <div class="fc-results-pane">
                     <div class="fc-block-panel" style="background: var(--panel-bg);">
-                        <div
-                            style="font-size: 11px; text-transform: uppercase; color: var(--accent-blue); font-weight: 700; margin-bottom: 2px;">
-                            Target Evaluation Node
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                            <div>
+                                <div id="fcCurrentNodeID"
+                                    style="font-size: 10px; font-family: monospace; color: var(--text-muted); letter-spacing:0.5px;">
+                                    NODE: --</div>
+                                <h2 id="fcCurrentNodeTitle"
+                                    style="margin: 2px 0 0 0; font-size: 18px; font-weight: 600; color: #fff;">
+                                    Select an Incident News Row
+                                </h2>
+                            </div>
+                            <div id="fcSpatialBadges" class="fc-badge-container" style="margin-top:0;"></div>
                         </div>
-                        <h2 id="fcCurrentNodeTitle" style="margin: 0; font-size: 18px; font-weight: 600; color: #fff;">
-                            Select an Incident News Row
-                        </h2>
                         <p id="fcCurrentNodeDesc"
-                            style="margin: 6px 0 0 0; font-size: 12px; color: var(--text-muted); line-height: 1.4;">
-                            Click a news item card from the left panel to execute NGBoost + Gemini inference structures.
+                            style="margin: 10px 0 0 0; font-size: 12px; color: var(--text-muted); line-height: 1.4;">
+                            Click a news item card from the left panel to execute single-item inference structures.
                         </p>
                     </div>
 
                     <div class="fc-hero-metric-grid">
                         <div class="fc-metric-card">
-                            <div class="lbl">Predicted Priority</div>
+                            <div class="lbl">Priority Tier</div>
                             <div id="fcMetricPriority" class="val">--</div>
                         </div>
                         <div class="fc-metric-card">
-                            <div class="lbl">Predicted Cause</div>
+                            <div class="lbl">Inferred Cause</div>
                             <div id="fcMetricCause" class="val">--</div>
                         </div>
                         <div class="fc-metric-card">
-                            <div class="lbl">Severity Score Index</div>
-                            <div id="fcMetricScore" class="val" style="color: var(--live-red);">--</div>
+                            <div class="lbl">Clearance Time</div>
+                            <div id="fcMetricScore" class="val" style="color: var(--accent-blue);">--</div>
                         </div>
                         <div class="fc-metric-card">
-                            <div class="lbl">Model Confidence</div>
-                            <div id="fcMetricConfidence" class="val" style="color: var(--success-green);">--</div>
+                            <div class="lbl">Jam Length</div>
+                            <div id="fcMetricJam" class="val" style="color: #e3b341;">--</div>
+                        </div>
+                        <div class="fc-metric-card">
+                            <div class="lbl">Severity Index</div>
+                            <div id="fcMetricSeverity" class="val" style="color: var(--live-red);">--</div>
+                        </div>
+                        <div class="fc-metric-card">
+                            <div class="lbl">Personnel Pool</div>
+                            <div id="fcMetricOfficers" class="val">--</div>
+                        </div>
+                        <div class="fc-metric-card">
+                            <div class="lbl">Barricades Needed</div>
+                            <div id="fcMetricBarricades" class="val">--</div>
                         </div>
                     </div>
 
                     <div class="fc-details-split">
-                        <div class="fc-block-panel">
-                            <h3
-                                style="margin: 0 0 14px 0; font-size: 12px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">
-                                🤖 NGBoost Uncertainty Spectrum
-                            </h3>
-
-                            <div class="fc-interval-bar">
-                                <div id="fcFillBar" class="fc-interval-fill"></div>
+                        <div class="fc-block-panel"
+                            style="display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
+                            <div>
+                                <h3
+                                    style="margin: 0 0 14px 0; font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">
+                                    🤖 NGBoost Uncertainty Spectrum
+                                </h3>
+                                <div class="fc-interval-bar">
+                                    <div id="fcFillBar" class="fc-interval-fill"></div>
+                                </div>
+                                <div
+                                    style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-bottom: 12px;">
+                                    <span>Lower Bound: <strong id="fcValLower" style="color: #fff;">--</strong></span>
+                                    <span>Upper Bound: <strong id="fcValUpper" style="color: #fff;">--</strong></span>
+                                </div>
                             </div>
-                            <div
-                                style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-bottom: 16px;">
-                                <span>Lower Bound: <strong id="fcValLower" style="color: #fff;">--</strong></span>
-                                <span>Upper Bound: <strong id="fcValUpper" style="color: #fff;">--</strong></span>
+
+                            <div style="border-top:1px solid var(--border-color); padding-top:12px;">
+                                <h4
+                                    style="margin:0 0 8px 0; font-size:11px; text-transform:uppercase; color:var(--text-muted);">
+                                    Historical Baseline Node Data</h4>
+                                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; font-size:12px;">
+                                    <div>Count: <strong id="fcHistCount" style="color:#fff;">--</strong></div>
+                                    <div>Median Clearance: <strong id="fcHistMedian" style="color:#fff;">--</strong>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div
-                                style="font-size: 12px; color: var(--text-muted); border-top: 1px solid var(--border-color); padding-top: 12px;">
-                                Model Variant: <span
-                                    style="font-family: monospace; color: var(--text-primary);">ngboost-v1</span>
+                            <div style="border-top:1px solid var(--border-color); padding-top:12px;">
+                                <h4
+                                    style="margin:0 0 4px 0; font-size:11px; text-transform:uppercase; color:var(--text-muted);">
+                                    Inherent Operational Timeline</h4>
+                                <div class="fc-timeline-row">
+                                    <span>Start: <strong id="fcTimeStart"
+                                            style="color:var(--accent-blue);">--</strong></span>
+                                    <span>Update: <strong id="fcTimeMod"
+                                            style="color:var(--text-primary);">--</strong></span>
+                                    <span>Resolved: <strong id="fcTimeResolve"
+                                            style="color:var(--success-green);">--</strong></span>
+                                </div>
                             </div>
                         </div>
 
                         <div class="fc-block-panel"
-                            style="display: flex; flex-direction: column; justify-content: space-between;">
+                            style="display: flex; flex-direction: column; justify-content: space-between; gap:12px;">
                             <div>
                                 <h3
-                                    style="margin: 0 0 12px 0; font-size: 12px; text-transform: uppercase; color: var(--accent-blue); letter-spacing: 0.5px;">
-                                    ✨ Gemini LLM Scenario Analysis
+                                    style="margin: 0 0 10px 0; font-size: 11px; text-transform: uppercase; color: var(--accent-blue); letter-spacing: 0.5px;">
+                                    ✨ Cognitive Core LLM Analysis
                                 </h3>
                                 <p id="fcTextSummary"
                                     style="margin: 0; font-size: 13px; line-height: 1.5; color: var(--text-primary);">
                                     Awaiting inference trigger context...
                                 </p>
+
+                                <div style="margin-top: 12px;">
+                                    <div
+                                        style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">
+                                        Hazards Identified</div>
+                                    <div id="fcHazardsContainer" class="fc-badge-container">
+                                        <span style="font-size: 11px; color: var(--text-muted);">None reported</span>
+                                    </div>
+                                </div>
+
+                                <div style="margin-top: 12px;">
+                                    <div
+                                        style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">
+                                        Tactical Recommended Diversions</div>
+                                    <div id="fcDiversionsContainer" class="fc-badge-container">
+                                        <span style="font-size: 11px; color: var(--text-muted);">No diversions
+                                            structured</span>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="fc-insight-box">
                                 <div
                                     style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #e3b341; margin-bottom: 4px;">
-                                    💡 Tactical Response Strategy:
+                                    💡 Operational Strategic Recommendation:
                                 </div>
                                 <p id="fcTextRecommendation"
                                     style="margin: 0; font-size: 12px; line-height: 1.4; color: var(--text-primary);">
-                                    Awaiting structural engine properties...
+                                    Awaiting execution parameters...
                                 </p>
                             </div>
                         </div>
@@ -1393,7 +1497,6 @@
 
             <script>
                 (function () {
-                    // Internal variable reference tracking state
                     let loadedNewsCache = [];
 
                     async function pullSidebarNewsFeed() {
@@ -1409,7 +1512,7 @@
                             loadedNewsCache = newsItems;
 
                             if (newsItems.length === 0) {
-                                container.innerHTML = `<div style="color:var(--text-muted); font-size:12px; text-align:center; padding:20px;">No operational news reports active.</div>`;
+                                container.innerHTML = `<div style="color:var(--text-muted); font-size:12px; text-align:center; padding:20px;">No active incident reports located.</div>`;
                                 return;
                             }
 
@@ -1419,94 +1522,122 @@
                                 card.className = "fc-news-card";
                                 card.setAttribute("data-news-id", item.id);
 
-                                // Handle mapping priority style flags safely
                                 const priority = (item.priority || "LOW").toUpperCase();
-                                const pColor = priority === 'HIGH' ? 'var(--live-red)' : (priority === 'MID' || priority === 'MEDIUM' ? '#e3b341' : 'var(--text-muted)');
+                                const pColor = priority === 'CRITICAL' || priority === 'HIGH' ? 'var(--live-red)' : (priority === 'MID' || priority === 'MEDIUM' ? '#e3b341' : 'var(--text-muted)');
 
                                 card.innerHTML = `
-                            <div class="fc-card-meta">
-                                <span style="font-weight:600; color: ${pColor}">${priority}</span>
-                                <span>${item.issue_type || 'INCIDENT'}</span>
-                            </div>
-                            <div class="fc-card-title">${item.description || 'No description available'}</div>
-                            <div style="font-size:10px; color:var(--text-muted); margin-top:6px; text-align:right;">
-                                ${item.location_name || 'General'}
-                            </div>
-                        `;
+                                    <div class="fc-card-meta">
+                                        <span style="font-weight:600; color: ${pColor}">${priority}</span>
+                                        <span>${(item.event_cause || item.issue_type || 'INCIDENT').replace(/_/g, ' ')}</span>
+                                    </div>
+                                    <div class="fc-card-title">${item.description || 'No descriptive context payload.'}</div>
+                                    <div style="font-size:10px; color:var(--text-muted); margin-top:6px; text-align:right;">
+                                        ${item.junction || item.location_name || 'General Route'}
+                                    </div>
+                                `;
 
                                 card.addEventListener("click", () => handleNewsItemSelection(item, card));
                                 container.appendChild(card);
                             });
 
                         } catch (err) {
-                            console.error("Forecast View News Sync Error:", err);
-                            container.innerHTML = `<div style="color:var(--live-red); font-size:12px; text-align:center; padding:20px;">Sync Failure</div>`;
+                            console.error("Forecast View Sync Error:", err);
+                            container.innerHTML = `<div style="color:var(--live-red); font-size:12px; text-align:center; padding:20px;">Sync Tracking Fault</div>`;
                         }
                     }
 
                     async function handleNewsItemSelection(newsItem, cardElement) {
-                        // Remove existing active states
                         document.querySelectorAll(".fc-news-card").forEach(el => el.classList.remove("active-selected"));
                         if (cardElement) cardElement.classList.add("active-selected");
 
-                        // Map header UI values instantly
-                        document.getElementById("fcCurrentNodeTitle").textContent = newsItem.location_name || "India (General)";
+                        // Prime UI with pending placeholders
+                        document.getElementById("fcCurrentNodeID").textContent = `NODE: ${newsItem.id || 'GENERIC'}`;
+                        document.getElementById("fcCurrentNodeTitle").textContent = newsItem.address || newsItem.location_name || "General Evaluation Boundary";
                         document.getElementById("fcCurrentNodeDesc").textContent = newsItem.description || "";
 
-                        // Set metrics layout into dynamic processing animations
-                        document.getElementById("fcMetricPriority").textContent = "⏳ Calculating...";
-                        document.getElementById("fcMetricCause").textContent = "Inference run...";
+                        document.getElementById("fcMetricPriority").textContent = "Calculating...";
+                        document.getElementById("fcMetricCause").textContent = "Running...";
                         document.getElementById("fcMetricScore").textContent = "--";
-                        document.getElementById("fcMetricConfidence").textContent = "--";
-                        document.getElementById("fcTextSummary").textContent = "Running predictive NGBoost arrays and matching parameters into Gemini cluster...";
-                        document.getElementById("fcTextRecommendation").textContent = "Computing tactical coordinates...";
+                        document.getElementById("fcMetricJam").textContent = "--";
+                        document.getElementById("fcMetricSeverity").textContent = "--";
+                        document.getElementById("fcMetricOfficers").textContent = "--";
+                        document.getElementById("fcMetricBarricades").textContent = "--";
 
-                        // Set default processing state on the distribution timeline bar element
+                        document.getElementById("fcSpatialBadges").innerHTML = "";
+                        document.getElementById("fcHazardsContainer").innerHTML = `<span style="color:var(--text-muted); font-size:11px;">Evaluating...</span>`;
+                        document.getElementById("fcDiversionsContainer").innerHTML = `<span style="color:var(--text-muted); font-size:11px;">Evaluating...</span>`;
+
                         const fillBar = document.getElementById("fcFillBar");
                         if (fillBar) { fillBar.style.width = "0%"; fillBar.style.left = "0%"; }
 
-                        // Map inference query params based on selected item priority
-                        const loc = encodeURIComponent(newsItem.location_name || "India (General)");
-                        const p = String(newsItem.priority).toUpperCase();
-                        const flow = p === 'HIGH' ? 'stop-and-go' : (p === 'MID' || p === 'MEDIUM' ? 'heavy' : 'moderate');
-
-                        // Map description hooks to deduce relative weather context profiles
-                        const descText = String(newsItem.description).toLowerCase();
-                        let weather = 'clear';
-                        if (descText.includes('rain') || descText.includes('monsoon')) weather = 'rainy';
-                        if (descText.includes('fog') || descText.includes('mist')) weather = 'foggy';
-
                         try {
-                            const response = await fetch(`/api/forcast-result?location=${loc}&flow=${flow}&weather=${weather}`);
-                            if (!response.ok) throw new Error("ML Engine endpoint exception");
+                            const response = await fetch('/api/forcast-result', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(newsItem)
+                            });
 
+                            if (!response.ok) throw new Error("ML Engine parsing fault");
                             const data = await response.json();
 
-                            // Render out the returned analytical JSON payload fields
-                            document.getElementById("fcMetricPriority").textContent = data.predicted_priority || "UNKNOWN";
-                            document.getElementById("fcMetricCause").textContent = data.predicted_cause || "Unspecified";
-                            document.getElementById("fcMetricScore").textContent = parseFloat(data.severity_score || 0).toFixed(2);
-                            document.getElementById("fcMetricConfidence").textContent = `${(parseFloat(data.confidence || 0) * 100).toFixed(1)}%`;
+                            // Populate Metric Fields
+                            document.getElementById("fcMetricPriority").textContent = data.predicted_priority;
+                            document.getElementById("fcMetricCause").textContent = data.predicted_cause.replace(/_/g, ' ');
+                            document.getElementById("fcMetricScore").textContent = `${data.clearance_duration_mins} mins`;
+                            document.getElementById("fcMetricJam").textContent = `${data.jam_length_km} km`;
+                            document.getElementById("fcMetricSeverity").textContent = `x${parseFloat(data.severity_multiplier || 1.0).toFixed(2)}`;
+                            document.getElementById("fcMetricOfficers").textContent = `${data.officers_needed} Units`;
+                            document.getElementById("fcMetricBarricades").textContent = `${data.barricades_needed} Units`;
 
-                            const lower = parseFloat(data.severity_lower || 0).toFixed(2);
-                            const upper = parseFloat(data.severity_upper || 0).toFixed(2);
-                            document.getElementById("fcValLower").textContent = lower;
-                            document.getElementById("fcValUpper").textContent = upper;
+                            // Populate Uncertainty Spectrum & Historical elements
+                            document.getElementById("fcValLower").textContent = `${data.severity_lower}m`;
+                            document.getElementById("fcValUpper").textContent = `${data.severity_upper}m`;
+                            document.getElementById("fcHistCount").textContent = data.historical_count.toLocaleString();
+                            document.getElementById("fcHistMedian").textContent = `${data.historical_median_mins} mins`;
 
-                            // Calculate bar position percentages dynamically inside 10pt scale bounds
+                            // Map Timelines
+                            document.getElementById("fcTimeStart").textContent = data.timeline.start || "--:--";
+                            document.getElementById("fcTimeMod").textContent = data.timeline.modified || "--:--";
+                            document.getElementById("fcTimeResolve").textContent = data.timeline.resolved || "Pending";
+
                             if (fillBar) {
-                                let leftPct = Math.max(0, Math.min(85, (lower * 10)));
-                                let widthPct = Math.max(15, Math.min(100 - leftPct, (upper - lower) * 10));
+                                let normFactor = 400; // Normalization scaling anchor for duration spectrum max tracking
+                                let leftPct = Math.max(0, Math.min(85, (data.severity_lower / normFactor) * 100));
+                                let widthPct = Math.max(15, Math.min(100 - leftPct, ((data.severity_upper - data.severity_lower) / normFactor) * 100));
                                 fillBar.style.left = `${leftPct}%`;
                                 fillBar.style.width = `${widthPct}%`;
                             }
 
-                            // Render Gemini synthesized text response mappings
-                            document.getElementById("fcTextSummary").textContent = data.llm_summary || "No specific scenario overview returned.";
-                            document.getElementById("fcTextRecommendation").textContent = data.llm_recommendation || "Maintain standard tactical field oversight parameters.";
+                            // Inject Descriptions & Summaries
+                            document.getElementById("fcTextSummary").textContent = data.llm_summary;
+                            document.getElementById("fcTextRecommendation").textContent = data.llm_recommendation;
+
+                            // Dynamic Structural Badges Mapping
+                            const spatialContainer = document.getElementById("fcSpatialBadges");
+                            spatialContainer.innerHTML = "";
+                            if (data.zone) spatialContainer.innerHTML += `<span class="fc-badge badge-spatial">${data.zone}</span>`;
+                            if (data.corridor) spatialContainer.innerHTML += `<span class="fc-badge badge-spatial">${data.corridor}</span>`;
+
+                            // Hazards Render loop
+                            const hazardsContainer = document.getElementById("fcHazardsContainer");
+                            if (data.hazards_present && data.hazards_present.length > 0) {
+                                hazardsContainer.innerHTML = data.hazards_present
+                                    .map(h => `<span class="fc-badge badge-hazard">${h.replace(/_/g, ' ')}</span>`).join('');
+                            } else {
+                                hazardsContainer.innerHTML = `<span style="color:var(--text-muted); font-size:11px;">Clear (No structural hazards)</span>`;
+                            }
+
+                            // Diversions Render loop
+                            const diversionsContainer = document.getElementById("fcDiversionsContainer");
+                            if (data.suggested_diversions && data.suggested_diversions.length > 0) {
+                                diversionsContainer.innerHTML = data.suggested_diversions
+                                    .map(d => `<span class="fc-badge badge-diversion">➔ ${d}</span>`).join('');
+                            } else {
+                                diversionsContainer.innerHTML = `<span style="color:var(--text-muted); font-size:11px;">No alternate path routing required</span>`;
+                            }
 
                         } catch (error) {
-                            console.error("Forecast View Pipeline Error:", error);
+                            console.error("Forecast Processing Core Error:", error);
                             document.getElementById("fcTextSummary").innerHTML = `<span style="color:var(--live-red);">Inference pipeline communication gap. Check application server logs.</span>`;
                         }
                     }
@@ -1514,13 +1645,10 @@
                     function setupEventWiring() {
                         document.getElementById("btnRefreshFcNews")?.addEventListener("click", pullSidebarNewsFeed);
 
-                        // Intercept global tab controller navigation
                         const nativeSwitchTab = window.switchTab;
                         window.switchTab = function (tabId) {
                             if (typeof nativeSwitchTab === 'function') nativeSwitchTab(tabId);
-                            if (tabId === 'forecast') {
-                                pullSidebarNewsFeed();
-                            }
+                            if (tabId === 'forecast') pullSidebarNewsFeed();
                         };
                     }
 
