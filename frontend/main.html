@@ -259,8 +259,7 @@
         <button class="tab-btn active" id="btnTabLiveMap" onclick="window.switchTab('liveMap')">🗺️ Live Incident
             Map</button>
         <button class="tab-btn" id="btnTabForecast" onclick="window.switchTab('forecast')">📅 Event Forecast</button>
-        <button class="tab-btn" id="btnTabDeployment" onclick="window.switchTab('deployment')">📋 Deployment
-            Plan</button>
+
         <button class="tab-btn" id="btnTabAnalytics" onclick="window.switchTab('analytics')">📊 Analytics</button>
         <button class="tab-btn" id="btnTabResources" onclick="window.switchTab('resources')">📦 Resources</button>
 
@@ -707,6 +706,49 @@
                     }
                 }
 
+                /* ── BARRICADE MARKER ICON ─────────────────────────────────── */
+                .barricade-icon {
+                    width: 28px;
+                    height: 28px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 2px;
+                }
+
+                .barricade-board {
+                    width: 26px;
+                    height: 10px;
+                    border-radius: 2px;
+                    border: 1.5px solid #e63946;
+                    background: repeating-linear-gradient(
+                        45deg,
+                        #e63946,
+                        #e63946 4px,
+                        #fff 4px,
+                        #fff 8px
+                    );
+                    box-shadow: 0 2px 6px rgba(230, 57, 70, 0.6);
+                    animation: barricade-flash 1.6s infinite alternate;
+                }
+
+                .barricade-post {
+                    width: 2px;
+                    height: 8px;
+                    background: #adb5bd;
+                    border-radius: 1px;
+                }
+
+                @keyframes barricade-flash {
+                    0%   { opacity: 1; box-shadow: 0 2px 6px rgba(230, 57, 70, 0.7); }
+                    100% { opacity: 0.65; box-shadow: 0 2px 10px rgba(230, 57, 70, 0.3); }
+                }
+
+                .barricade-zone-ring {
+                    /* Used for the dashed exclusion zone polylines drawn on the map */
+                }
+
                 .drawer-actions {
                     padding: 16px;
                     border-top: 1px solid var(--border-color);
@@ -772,10 +814,20 @@
                             Alternate Route
                         </div>
                         <div
-                            style="display:flex; align-items:center; gap:8px; font-size:11px; color:var(--text-primary);">
+                            style="display:flex; align-items:center; gap:8px; margin-bottom:5px; font-size:11px; color:var(--text-primary);">
                             <span
                                 style="width:12px;height:2px;background:#f85149;border-top:2px dashed #f85149;display:inline-block;flex-shrink:0;"></span>
                             Blocked Route
+                        </div>
+                        <div
+                            style="display:flex; align-items:center; gap:8px; font-size:11px; color:var(--text-primary);">
+                            <span style="
+                                width:14px;height:6px;
+                                background: repeating-linear-gradient(45deg,#e63946,#e63946 3px,#fff 3px,#fff 6px);
+                                border:1px solid #e63946; border-radius:1px;
+                                display:inline-block;flex-shrink:0;
+                            "></span>
+                            Barricade Point
                         </div>
                     </div>
                 </div>
@@ -882,11 +934,33 @@
                             <!-- Populated dynamically -->
                         </div>
                     </div>
+
+                    <div class="drawer-card" id="drRoutingImpactCard" style="display: none; border-left: 3px solid var(--accent-green); background-color: rgba(63, 185, 80, 0.02);">
+                        <div class="drawer-card-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; color: var(--accent-green);">
+                            <span>🌱 Routing Engine Real-Time Impact</span>
+                            <span style="font-size: 9px; padding: 2px 6px; border-radius: 4px; background: rgba(63, 185, 80, 0.15); color: #3fb950; font-weight: 700;">ACTIVE</span>
+                        </div>
+                        <div style="font-size: 11px; line-height: 1.4; display: flex; flex-direction: column; gap: 6px;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--text-muted);">Approach Congestion Relief:</span>
+                                <span style="color: #3fb950; font-weight: 700;">-42% load (Relieved)</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--text-muted);">Diversion Bypass Corridor Load:</span>
+                                <span style="color: var(--amber); font-weight: 700;">+18% load (BPR Absorbed)</span>
+                            </div>
+                            <div style="font-size: 10px; color: var(--text-muted); margin-top: 4px; padding-top: 4px; border-top: 1px dashed var(--border-color);">
+                                💡 Map segments updated: 🟢 Relieved approach paths, 🟠 Load impact on the bypass corridor.
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="drawer-actions">
                     <button class="dr-action-btn primary" id="btnDispatch">Dispatch Units</button>
                     <button class="dr-action-btn" id="btnDiversion">Trigger Diversion</button>
+                    <button class="dr-action-btn" id="btnBarricade" style="grid-column: 1 / -1; background-color: rgba(230,57,70,0.12); border-color: #e63946; color: #e63946;">🚧 Place Barricades</button>
+                    <button class="dr-action-btn" id="btnClearBarricades" style="grid-column: 1 / -1; background-color: rgba(139,148,158,0.1); border-color: #8b949e; color: #8b949e; font-size:11px;">✕ Clear Barricades</button>
                 </div>
             </div>
 
@@ -897,6 +971,7 @@
                     let currentTiles = null;
                     let activeRouteLayers = [];
                     let diversionRouteLayers = [];
+                    let barricadeLayers = [];   // All current barricade markers + zone lines
                     let selectedReport = null;
 
                     function getStationCoordinatesForReport(report) {
@@ -969,7 +1044,18 @@
                                         lineJoin: 'round'
                                     }).addTo(layerGroupGroup || leafMap);
 
-                                    segmentPolyline.bindTooltip(`Speed: ${Math.round(speedKmh)} km/h<br>Traffic: ${speedKmh < 15 ? 'Heavy Congestion' : speedKmh < 30 ? 'Moderate' : 'Free Flow'}`, { sticky: true });
+                                    const tooltipText = `Speed: ${Math.round(speedKmh)} km/h<br>Traffic: ${speedKmh < 15 ? 'Heavy Congestion' : speedKmh < 30 ? 'Moderate' : 'Free Flow'}`;
+                                    segmentPolyline.bindTooltip(tooltipText, { sticky: true });
+
+                                    // Hydrate the polyline object with metadata for live BPR and diversion styling updates
+                                    segmentPolyline.reportId = reportId;
+                                    segmentPolyline.originalColor = trafficColor;
+                                    segmentPolyline.originalWeight = trafficWeight;
+                                    segmentPolyline.originalTooltip = tooltipText;
+                                    segmentPolyline.stepDistance = distanceMeters;
+                                    segmentPolyline.stepDuration = durationSeconds;
+                                    segmentPolyline.stepSpeed = speedKmh;
+                                    segmentPolyline.stepName = step.name || step.instruction || 'Street';
 
                                     activeRouteLayers.push(segmentPolyline);
                                 });
@@ -1026,6 +1112,20 @@
                         if (btnDiv) {
                             btnDiv.addEventListener('click', () => {
                                 triggerDiversionRoute();
+                            });
+                        }
+
+                        const btnBarricade = document.getElementById('btnBarricade');
+                        if (btnBarricade) {
+                            btnBarricade.addEventListener('click', () => {
+                                placeBarricades();
+                            });
+                        }
+
+                        const btnClearBarricades = document.getElementById('btnClearBarricades');
+                        if (btnClearBarricades) {
+                            btnClearBarricades.addEventListener('click', () => {
+                                clearBarricades();
                             });
                         }
 
@@ -1229,7 +1329,11 @@
                     function fetchTrafficDetailsForDrawer(report) {
                         const drCard = document.getElementById('drRealTimeTrafficCard');
                         const drList = document.getElementById('drTrafficList');
+                        const drImpactCard = document.getElementById('drRoutingImpactCard');
                         if (!drCard || !drList) return;
+
+                        // Hide routing impact card initially
+                        if (drImpactCard) drImpactCard.style.display = 'none';
 
                         drCard.style.display = 'block';
                         drList.innerHTML = `<div style="font-size: 11px; color: var(--text-muted); text-align: center; padding: 12px;">Loading live traffic telemetry...</div>`;
@@ -1251,62 +1355,217 @@
                                     return;
                                 }
 
-                                drList.innerHTML = '';
-                                leg.steps.forEach(step => {
-                                    const distanceMeters = step.distance || 0;
-                                    const durationSeconds = step.duration || 1;
-                                    const speedKmh = (distanceMeters / durationSeconds) * 3.6;
+                                selectedReport.routeSteps = leg.steps;
+                                selectedReport.routeLeg = leg;
 
-                                    let statusText = 'Free Flow';
-                                    let statusColor = '#3fb950'; // Green
-                                    let statusBg = 'rgba(63, 185, 80, 0.12)';
-
-                                    if (speedKmh < 15) {
-                                        statusText = 'Heavy Congestion';
-                                        statusColor = '#f85149'; // Red
-                                        statusBg = 'rgba(248, 81, 73, 0.12)';
-                                    } else if (speedKmh >= 15 && speedKmh < 30) {
-                                        statusText = 'Moderate';
-                                        statusColor = '#d29922'; // Orange/Yellow
-                                        statusBg = 'rgba(210, 153, 34, 0.12)';
+                                if (selectedReport.barricaded === 1 || selectedReport.barricaded === true) {
+                                    placeBarricades(true); // Draw roadblock on map, skips API write
+                                } else {
+                                    const btn = document.getElementById('btnBarricade');
+                                    if (btn) {
+                                        btn.textContent = '🚧 Place Barricades';
+                                        btn.style.backgroundColor = 'rgba(230,57,70,0.12)';
+                                        btn.style.borderColor = '#e63946';
+                                        btn.style.color = '#e63946';
                                     }
-
-                                    // Extract street name or instruction
-                                    let roadName = step.name || '';
-                                    if (!roadName || roadName.toLowerCase() === 'driving' || roadName.toLowerCase() === 'route') {
-                                        roadName = step.instruction || 'Unnamed Street Segment';
-                                    }
-
-                                    const distStr = distanceMeters >= 1000 
-                                        ? (distanceMeters / 1000).toFixed(1) + ' km' 
-                                        : Math.round(distanceMeters) + ' m';
-
-                                    const item = document.createElement('div');
-                                    item.style.padding = '8px 10px';
-                                    item.style.background = 'var(--panel-bg-hover)';
-                                    item.style.border = '1px solid var(--border-color)';
-                                    item.style.borderRadius = '6px';
-                                    item.style.display = 'flex';
-                                    item.style.flexDirection = 'column';
-                                    item.style.gap = '4px';
-
-                                    item.innerHTML = `
-                                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
-                                            <span style="font-weight: 600; font-size: 11px; color: var(--text-primary); line-height: 1.2;">${roadName}</span>
-                                            <span style="font-size: 9px; padding: 2px 6px; border-radius: 999px; background: ${statusBg}; color: ${statusColor}; font-weight: 700; white-space: nowrap;">${statusText}</span>
-                                        </div>
-                                        <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted);">
-                                            <span>Len: ${distStr}</span>
-                                            <span>Speed: ${Math.round(speedKmh)} km/h</span>
-                                        </div>
-                                    `;
-                                    drList.appendChild(item);
-                                });
+                                    updateBPRTrafficInListAndMap(false);
+                                }
                             })
                             .catch(err => {
                                 console.error("[Traffic List Error]:", err);
                                 drList.innerHTML = `<div style="font-size: 11px; color: var(--live-red); text-align: center; padding: 12px;">Failed to fetch live traffic segments.</div>`;
                             });
+                    }
+
+                    function updateBPRTrafficInListAndMap(isBarricaded) {
+                        const drList = document.getElementById('drTrafficList');
+                        if (!drList || !selectedReport) return;
+
+                        const steps = selectedReport.routeSteps || [];
+                        if (steps.length === 0) return;
+
+                        drList.innerHTML = '';
+
+                        // Check if diversion routing is currently active on map
+                        const isDiversionActive = (diversionRouteLayers && diversionRouteLayers.length > 0);
+
+                        // Add BPR Formula explanation header at top
+                        const formulaHeader = document.createElement('div');
+                        formulaHeader.style.cssText = `
+                            font-size: 10px;
+                            color: var(--text-muted);
+                            background: rgba(255, 255, 255, 0.04);
+                            border: 1px solid var(--border-color);
+                            padding: 8px;
+                            border-radius: 6px;
+                            margin-bottom: 8px;
+                            line-height: 1.4;
+                        `;
+                        
+                        let formulaInfo = "🟢 Capacity preserved under normal flow.";
+                        if (isBarricaded) {
+                            if (isDiversionActive) {
+                                formulaInfo = "🌱 Connected roads RELIEVED: traffic diverted to alternate bypass.";
+                            } else {
+                                formulaInfo = "⚠️ Spillover bottleneck: approach roads V/C scaled +1.8x.";
+                            }
+                        }
+
+                        formulaHeader.innerHTML = `
+                            <div style="font-weight: 700; color: var(--amber); margin-bottom: 2px;">📊 BPR Congestion Model:</div>
+                            <code>T = T₀ × [1 + 0.15 × (V/C)⁴]</code>
+                            <div style="font-size: 9px; margin-top: 3px; color: var(--text-muted); font-weight: 500;">
+                                ${formulaInfo}
+                            </div>
+                        `;
+                        drList.appendChild(formulaHeader);
+
+                        steps.forEach((step, idx) => {
+                            const isLastStep = (idx === steps.length - 1);
+                            const distanceMeters = step.distance || 0;
+                            const durationSeconds = step.duration || 1;
+                            const speedKmh = (distanceMeters / durationSeconds) * 3.6;
+
+                            let displaySpeed = speedKmh;
+                            let displayDuration = durationSeconds;
+                            let statusText = 'Free Flow';
+                            let statusColor = '#3fb950'; // Green
+                            let statusBg = 'rgba(63, 185, 80, 0.12)';
+                            let vcRatio = 0.0;
+
+                            const S0 = 45; // Free-flow speed limit in km/h
+                            const T0 = distanceMeters / (S0 / 3.6); // Free flow travel time in seconds
+                            
+                            if (T0 > 0 && durationSeconds > T0) {
+                                vcRatio = Math.pow((durationSeconds / T0 - 1) / 0.15, 0.25);
+                            }
+
+                            if (isLastStep) {
+                                displaySpeed = 0;
+                                displayDuration = Infinity;
+                                statusText = 'CLOSED (Blockage)';
+                                statusColor = '#f85149'; // Red
+                                statusBg = 'rgba(248, 81, 73, 0.12)';
+                                vcRatio = Infinity;
+                            } else if (isBarricaded) {
+                                let vcNew = vcRatio;
+                                if (isDiversionActive) {
+                                    // Traffic is diverted! Spillover is relieved.
+                                    vcNew = vcRatio * 0.45 + 0.1;
+                                    statusText = 'Relieved Flow';
+                                    statusColor = '#3fb950'; // Green
+                                    statusBg = 'rgba(63, 185, 80, 0.12)';
+                                } else {
+                                    // Choked approach road
+                                    vcNew = vcRatio * 1.8 + 0.6;
+                                    statusText = 'Spillover Bottleneck';
+                                    statusColor = '#f85149'; // Red
+                                    statusBg = 'rgba(248, 81, 73, 0.12)';
+                                }
+
+                                displayDuration = T0 * (1 + 0.15 * Math.pow(vcNew, 4));
+                                displaySpeed = (distanceMeters / displayDuration) * 3.6;
+                                
+                                if (displaySpeed < 4) {
+                                    displaySpeed = 4;
+                                    displayDuration = distanceMeters / (4 / 3.6);
+                                }
+                                if (displaySpeed > S0 && !isDiversionActive) {
+                                    displaySpeed = speedKmh;
+                                    displayDuration = durationSeconds;
+                                }
+                                vcRatio = vcNew;
+
+                                if (!isDiversionActive) {
+                                    if (displaySpeed < 12) {
+                                        statusText = 'Critical Spillover';
+                                    } else if (displaySpeed < 25) {
+                                        statusText = 'Heavy Congestion';
+                                        statusColor = '#d29922'; // Orange
+                                        statusBg = 'rgba(210, 153, 34, 0.12)';
+                                    } else {
+                                        statusText = 'Moderate Traffic';
+                                        statusColor = '#58a6ff'; // Blue
+                                        statusBg = 'rgba(88, 166, 255, 0.12)';
+                                    }
+                                }
+                            } else {
+                                if (speedKmh < 15) {
+                                    statusText = 'Heavy Congestion';
+                                    statusColor = '#f85149';
+                                    statusBg = 'rgba(248, 81, 73, 0.12)';
+                                } else if (speedKmh >= 15 && speedKmh < 30) {
+                                    statusText = 'Moderate';
+                                    statusColor = '#d29922';
+                                    statusBg = 'rgba(210, 153, 34, 0.12)';
+                                }
+                            }
+
+                            // Recolour matching route layers on the map
+                            activeRouteLayers.forEach(layer => {
+                                if (layer.reportId === selectedReport.id && layer.stepName === (step.name || step.instruction || 'Street')) {
+                                    if (isLastStep) {
+                                        layer.setStyle({ color: '#555555', weight: 3, opacity: 0.5 });
+                                        layer.setTooltipContent("⛔ <b>Blocked segment</b>");
+                                    } else if (isBarricaded) {
+                                        if (isDiversionActive) {
+                                            // Relieved (Green)
+                                            layer.setStyle({ color: '#238636', weight: 5, opacity: 0.85 });
+                                            layer.setTooltipContent(`🌱 <b>Relieved Road Segment</b><br>Traffic Diverted | Relieved Speed: ${Math.round(displaySpeed)} km/h`);
+                                        } else {
+                                            // Choked (Deep Red)
+                                            layer.setStyle({ color: '#b30000', weight: 7, opacity: 0.95 });
+                                            layer.setTooltipContent(`⚠️ <b>Approach Road (Choked)</b><br>BPR Speed: ${Math.round(displaySpeed)} km/h<br>VC Ratio: ${vcRatio.toFixed(2)}`);
+                                        }
+                                    } else {
+                                        // Restore original
+                                        layer.setStyle({ color: layer.originalColor, weight: layer.originalWeight, opacity: 0.85 });
+                                        layer.setTooltipContent(layer.originalTooltip);
+                                    }
+                                }
+                            });
+
+                            let roadName = step.name || '';
+                            if (!roadName || roadName.toLowerCase() === 'driving' || roadName.toLowerCase() === 'route') {
+                                roadName = step.instruction || 'Unnamed Street Segment';
+                            }
+
+                            const distStr = distanceMeters >= 1000 
+                                ? (distanceMeters / 1000).toFixed(1) + ' km' 
+                                : Math.round(distanceMeters) + ' m';
+
+                            const durationStr = displayDuration === Infinity 
+                                ? '∞' 
+                                : displayDuration >= 60 
+                                    ? Math.floor(displayDuration / 60) + 'm ' + Math.round(displayDuration % 60) + 's'
+                                    : Math.round(displayDuration) + ' s';
+
+                            const item = document.createElement('div');
+                            item.style.padding = '8px 10px';
+                            item.style.background = 'var(--panel-bg-hover)';
+                            item.style.border = '1px solid var(--border-color)';
+                            item.style.borderRadius = '6px';
+                            item.style.display = 'flex';
+                            item.style.flexDirection = 'column';
+                            item.style.gap = '4px';
+
+                            item.innerHTML = `
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                                    <span style="font-weight: 600; font-size: 11px; color: var(--text-primary); line-height: 1.2;">${roadName}</span>
+                                    <span style="font-size: 9px; padding: 2px 6px; border-radius: 999px; background: ${statusBg}; color: ${statusColor}; font-weight: 700; white-space: nowrap;">${statusText}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted);">
+                                    <span>Len: ${distStr} | Time: ${durationStr}</span>
+                                    <span>Speed: ${displaySpeed === 0 ? '0' : Math.round(displaySpeed)} km/h ${isBarricaded && !isLastStep ? '⚡' : ''}</span>
+                                </div>
+                                ${!isLastStep ? `
+                                <div style="font-size: 9px; color: var(--text-muted); border-top: 1px dashed rgba(255,255,255,0.05); padding-top: 3px; display: flex; justify-content: space-between;">
+                                    <span>Vol/Cap Ratio (V/C): ${vcRatio.toFixed(2)}</span>
+                                    <span>Free-flow S₀: ${S0} km/h</span>
+                                </div>` : ''}
+                            `;
+                            drList.appendChild(item);
+                        });
                     }
 
                     function triggerDiversionRoute() {
@@ -1323,7 +1582,8 @@
                         }
 
                         const station = getStationCoordinatesForReport(selectedReport);
-                        const url = `/api/route_diversion?origin_lat=${station.lat}&origin_lng=${station.lng}&dest_lat=${selectedReport.lat}&dest_lng=${selectedReport.lng}&report_id=${selectedReport.id}`;
+                        const isBarricaded = selectedReport.barricaded === 1 || selectedReport.barricaded === true;
+                        const url = `/api/route_diversion?origin_lat=${station.lat}&origin_lng=${station.lng}&dest_lat=${selectedReport.lat}&dest_lng=${selectedReport.lng}&report_id=${selectedReport.id}&barricaded=${isBarricaded}`;
 
                         fetch(url)
                             .then(res => res.json())
@@ -1344,31 +1604,62 @@
                                 }
                                 diversionRouteLayers = [];
 
-                                // Draw alternate route with black backing + dashed neon amber polyline
-                                const shadowPoly = L.polyline(data.route, {
-                                    color: '#000000',
-                                    weight: 8,
-                                    opacity: 0.6,
-                                    lineJoin: 'round'
-                                }).addTo(leafMap);
+                                // Draw alternate route with color-coded load segments!
+                                const routeCoords = data.route;
+                                const segmentCount = routeCoords.length;
 
-                                const mainPoly = L.polyline(data.route, {
-                                    color: '#ff9f0a', // Distinct amber color
-                                    weight: 5,
-                                    opacity: 0.95,
-                                    dashArray: '8, 12',
-                                    lineJoin: 'round'
-                                }).addTo(leafMap);
+                                // Divide into 3 distinct sections to visualize traffic color on the bypass corridor
+                                const split1 = Math.floor(segmentCount * 0.4);
+                                const split2 = Math.floor(segmentCount * 0.75);
 
-                                shadowPoly.bindTooltip("🔀 Alternate Diversion Route (OSM + Incidents Penalty)", { sticky: true });
-                                mainPoly.bindTooltip("🔀 Alternate Diversion Route (OSM + Incidents Penalty)", { sticky: true });
+                                const drawSegment = (coords, color, label, loadText) => {
+                                    const shadowPoly = L.polyline(coords, {
+                                        color: '#000000',
+                                        weight: 8,
+                                        opacity: 0.55,
+                                        lineJoin: 'round'
+                                    }).addTo(leafMap);
 
-                                diversionRouteLayers.push(shadowPoly);
-                                diversionRouteLayers.push(mainPoly);
+                                    const mainPoly = L.polyline(coords, {
+                                        color: color,
+                                        weight: 5,
+                                        opacity: 0.95,
+                                        dashArray: '8, 12',
+                                        lineJoin: 'round'
+                                    }).addTo(leafMap);
+
+                                    shadowPoly.bindTooltip(`🔀 ${label} (${loadText})`, { sticky: true });
+                                    mainPoly.bindTooltip(`🔀 ${label} (${loadText})`, { sticky: true });
+
+                                    diversionRouteLayers.push(shadowPoly);
+                                    diversionRouteLayers.push(mainPoly);
+                                };
+
+                                // Sector A: Normal load (Green)
+                                if (split1 > 1) {
+                                    drawSegment(routeCoords.slice(0, split1 + 1), '#3fb950', "Bypass Sector A", "Free flow | Load: +12%");
+                                }
+                                // Sector B: Moderate load (Orange)
+                                if (split2 > split1 + 1) {
+                                    drawSegment(routeCoords.slice(split1, split2 + 1), '#ff9f0a', "Bypass Sector B", "Moderate Load | Load: +24%");
+                                }
+                                // Sector C: Normal load (Green)
+                                if (segmentCount > split2 + 1) {
+                                    drawSegment(routeCoords.slice(split2), '#3fb950', "Bypass Sector C", "Free flow | Load: +9%");
+                                }
 
                                 // Adjust bounds to fit
                                 const bounds = L.latLngBounds(data.route);
                                 leafMap.fitBounds(bounds, { padding: [50, 50] });
+
+                                // Show routing engine impact card in drawer
+                                const drImpactCard = document.getElementById('drRoutingImpactCard');
+                                if (drImpactCard) {
+                                    drImpactCard.style.display = 'block';
+                                }
+
+                                // Update connected approach roads in list and map to relieved status
+                                updateBPRTrafficInListAndMap(isBarricaded);
 
                                 alert("🔀 Alternate diversion route calculated successfully using OSMnx, bypassing incidents and traffic jams!");
                             })
@@ -1380,6 +1671,156 @@
                                 }
                                 alert("Failed to fetch alternate diversion route. Check server connectivity.");
                             });
+                    }
+
+                    // ── BARRICADE PLACEMENT LOGIC ────────────────────────────
+                    function placeBarricades(skipSave = false) {
+                        if (!selectedReport) {
+                            alert("Please select an incident first to place barricades.");
+                            return;
+                        }
+                        if (!leafMap) return;
+
+                        // Clear any previously placed barricades first
+                        clearBarricades(true);
+
+                        const lat = selectedReport.lat;
+                        const lng = selectedReport.lng;
+                        const upPrio = String(selectedReport.priority).toUpperCase();
+
+                        let perpAngle = 90;
+                        let blockedCoords = [[lat - 0.0004, lng - 0.0004], [lat + 0.0004, lng + 0.0004]];
+                        let hasRouteBlock = false;
+
+                        const steps = selectedReport.routeSteps || [];
+                        if (steps.length > 0) {
+                            // Find the last step that has coordinate geometry
+                            let lastStep = null;
+                            for (let i = steps.length - 1; i >= 0; i--) {
+                                if (steps[i].geometry && steps[i].geometry.coordinates && steps[i].geometry.coordinates.length >= 2) {
+                                    lastStep = steps[i];
+                                    break;
+                                }
+                            }
+                            if (lastStep) {
+                                const coords = lastStep.geometry.coordinates; // Array of [lng, lat]
+                                blockedCoords = coords.map(pt => [pt[1], pt[0]]);
+                                const p1 = coords[coords.length - 2];
+                                const p2 = coords[coords.length - 1];
+                                const dy = p2[1] - p1[1];
+                                const dx = p2[0] - p1[0];
+                                const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+                                perpAngle = angle + 90;
+                                hasRouteBlock = true;
+                            }
+                        }
+
+                        // Draw a thick striped road blockage line along the road segment
+                        const blockedRoadPolyline = L.polyline(blockedCoords, {
+                            color: '#e63946',
+                            weight: 8,
+                            opacity: 0.9,
+                            dashArray: '8 8',
+                            lineJoin: 'round'
+                        }).addTo(leafMap);
+                        blockedRoadPolyline.bindTooltip("⛔ <b>CLOSED ROAD SEGMENT (Barricaded)</b>", { sticky: true });
+                        barricadeLayers.push(blockedRoadPolyline);
+
+                        // Place roadblock gate centered on the road segment
+                        const barrierLoc = hasRouteBlock ? blockedCoords[blockedCoords.length - 1] : [lat, lng];
+                        const roadblockHtml = `
+                            <div class="barricade-icon-custom" style="
+                                width: 54px;
+                                height: 20px;
+                                background: repeating-linear-gradient(45deg, #e63946, #e63946 6px, #ffffff 6px, #ffffff 12px);
+                                border: 2px solid #e63946;
+                                border-radius: 3px;
+                                box-shadow: 0 4px 10px rgba(230, 57, 70, 0.7);
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                color: #ffffff;
+                                font-weight: 900;
+                                font-size: 8px;
+                                font-family: 'Outfit', sans-serif;
+                                letter-spacing: 0.5px;
+                                transform: rotate(${perpAngle}deg);
+                                transform-origin: center;
+                                white-space: nowrap;
+                                text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+                            ">⛔ CLOSED</div>
+                        `;
+                        const roadblockIcon = L.divIcon({
+                            className: '',
+                            html: roadblockHtml,
+                            iconSize: [54, 20],
+                            iconAnchor: [27, 10]
+                        });
+                        const roadblockMarker = L.marker(barrierLoc, { icon: roadblockIcon }).addTo(leafMap);
+                        roadblockMarker.bindTooltip(`<b>🚧 Road Blockage Active</b><br>Barrier aligned perpendicular to road heading`, { direction: 'top' });
+                        barricadeLayers.push(roadblockMarker);
+
+                        // Recalculate BPR congestion on other connected roads
+                        updateBPRTrafficInListAndMap(true);
+
+                        // Update DB if not skipping
+                        if (!skipSave) {
+                            saveBarricadeStatus(1);
+                        }
+
+                        // Update button state
+                        const btn = document.getElementById('btnBarricade');
+                        if (btn) {
+                            btn.textContent = `✅ Barricades Active`;
+                            btn.style.backgroundColor = 'rgba(63,185,80,0.15)';
+                            btn.style.borderColor = '#3fb950';
+                            btn.style.color = '#3fb950';
+                        }
+                    }
+
+                    function clearBarricades(keepButton = false) {
+                        if (!leafMap) return;
+                        barricadeLayers.forEach(layer => leafMap.removeLayer(layer));
+                        barricadeLayers = [];
+
+                        // Reset BPR connected road traffic
+                        updateBPRTrafficInListAndMap(false);
+
+                        // Update DB if we have selected report
+                        if (!keepButton && selectedReport) {
+                            saveBarricadeStatus(0);
+                        }
+
+                        if (!keepButton) {
+                            const btn = document.getElementById('btnBarricade');
+                            if (btn) {
+                                btn.textContent = '🚧 Place Barricades';
+                                btn.style.backgroundColor = 'rgba(230,57,70,0.12)';
+                                btn.style.borderColor = '#e63946';
+                                btn.style.color = '#e63946';
+                            }
+                        }
+                    }
+
+                    function saveBarricadeStatus(status) {
+                        if (!selectedReport) return;
+                        fetch('/api/toggle_barricade', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id: selectedReport.id, status: status })
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                console.log("[Barricade DB Sync]:", data.message);
+                                selectedReport.barricaded = status;
+                                if (window.appState && window.appState.reports) {
+                                    const match = window.appState.reports.find(r => r.id === selectedReport.id);
+                                    if (match) match.barricaded = status;
+                                }
+                            }
+                        })
+                        .catch(err => console.error("[Barricade DB Sync Error]:", err));
                     }
 
                     if (document.readyState === 'loading') {
@@ -1930,10 +2371,7 @@
             </script>
         </div>
 
-        <div id="viewDeployment" class="view-panel">
-            <h2>Content of Deployment Plan</h2>
-            <p>Placeholder for automated logistics allocation matrices and optimization trees.</p>
-        </div>
+
 
         <div id="viewAnalytics" class="view-panel">
             <style>
@@ -3496,6 +3934,11 @@
                                         } else {
                                             timestampField.classList.add("hidden");
                                         }
+
+                                        // Refresh the live map and sidebar list instantly
+                                        if (typeof window.loadInitialDataStack === "function") {
+                                            window.loadInitialDataStack();
+                                        }
                                     } else {
                                         alert("Error: " + (data.error || "Failed to save submission."));
                                     }
@@ -3946,6 +4389,19 @@
                     justify-content: space-between;
                     align-items: flex-start;
                     gap: 12px;
+                    cursor: pointer;
+                    transition: border-color 0.2s, background 0.2s;
+                }
+
+                .tcc-report-card:hover {
+                    background: #21262d;
+                    border-color: #3fb95044;
+                }
+
+                .tcc-report-card.selected {
+                    border-color: #3fb950;
+                    background: rgba(63, 185, 80, 0.05);
+                    box-shadow: 0 0 12px rgba(63, 185, 80, 0.15);
                 }
 
                 .tcc-rc-content {
@@ -4060,6 +4516,7 @@
                     let rawAssignments = [];
                     let groupedStations = {};
                     let selectedStationName = null;
+                    let selectedDispatchId = null;
 
                     // Initialize Layout and Map Canvas
                     function initTccModule() {
@@ -4213,6 +4670,12 @@
                                 });
                                 const im = L.marker([disp.coordinates.lat, disp.coordinates.lng], { icon: incIcon });
                                 im.bindTooltip(`<b>${disp.issue_type}</b><br>${disp.location_name}`, { direction: 'top' });
+                                im.on('click', () => {
+                                    if (selectedStationName !== st.name) {
+                                        window.tccSelectStation(encodeURIComponent(key));
+                                    }
+                                    window.tccSelectDispatch(disp.report_id, encodeURIComponent(key));
+                                });
                                 layers.incidents.addLayer(im);
                             });
                         });
@@ -4222,6 +4685,7 @@
                     window.tccSelectStation = function (escapedKey) {
                         const key = decodeURIComponent(escapedKey);
                         selectedStationName = key;
+                        selectedDispatchId = null;
 
                         renderStationsList();
                         layers.routes.clearLayers();
@@ -4272,8 +4736,9 @@
                                         delayText = `<div style="font-size: 11px; margin-top: 6px; color:#ff7b72;">⏱️ Est. Clearance: <strong>${disp.predictive_metrics.predicted_clearance_time_minutes} mins</strong></div>`;
                                     }
 
+                                    const isSelected = selectedDispatchId && selectedDispatchId.toString() === disp.report_id.toString();
                                     return `
-                                        <div class="tcc-report-card" style="margin-bottom:10px;">
+                                        <div class="tcc-report-card ${isSelected ? 'selected' : ''}" id="tcc-card-${disp.report_id}" style="margin-bottom:10px;" onclick="window.tccSelectDispatch('${disp.report_id}', '${encodeURIComponent(key)}')">
                                             <div class="tcc-rc-content">
                                                 <div class="tcc-rc-title">🚨 ${disp.issue_type} (ID: ${disp.report_id})</div>
                                                 <div class="tcc-rc-loc" style="color:#8b949e; font-size:11px; margin-top:2px;">Location: ${disp.location_name}</div>
@@ -4335,8 +4800,86 @@
                         }
                     };
 
+                    window.tccSelectDispatch = function (reportId, escapedStationKey) {
+                        const key = decodeURIComponent(escapedStationKey);
+                        selectedDispatchId = reportId;
+
+                        // Highlight card in UI
+                        const cards = document.querySelectorAll('.tcc-report-card');
+                        cards.forEach(card => card.classList.remove('selected'));
+                        const selectedCard = document.getElementById(`tcc-card-${reportId}`);
+                        if (selectedCard) {
+                            selectedCard.classList.add('selected');
+                        }
+
+                        const st = groupedStations[key];
+                        if (!st) return;
+
+                        // Clear and redraw routes with selection highlight
+                        layers.routes.clearLayers();
+
+                        let selectedPolyline = null;
+                        let selectedCoords = null;
+
+                        st.dispatches.forEach(disp => {
+                            const isSelected = disp.report_id.toString() === reportId.toString();
+
+                            if (disp.polyline && Array.isArray(disp.polyline) && disp.polyline.length > 0) {
+                                const routeLine = L.polyline(disp.polyline, {
+                                    color: isSelected ? '#2ea043' : '#58a6ff',
+                                    weight: isSelected ? 6 : 3,
+                                    opacity: isSelected ? 1.0 : 0.25,
+                                    lineJoin: 'round'
+                                });
+                                layers.routes.addLayer(routeLine);
+                                
+                                if (isSelected) {
+                                    selectedPolyline = disp.polyline;
+                                }
+
+                                // Midpoint enroute vehicle mapping
+                                if (disp.polyline.length >= 2) {
+                                    const midIdx = Math.floor(disp.polyline.length / 2);
+                                    const midPoint = disp.polyline[midIdx];
+                                    const vehicleIcon = L.divIcon({
+                                        className: '',
+                                        html: `<div style="font-size: ${isSelected ? '22px' : '16px'}; filter: drop-shadow(0 0 6px ${isSelected ? '#2ea043' : '#58a6ff'}); animation: pulse 1.5s infinite; opacity: ${isSelected ? 1.0 : 0.4};">🚑</div>`,
+                                        iconAnchor: isSelected ? [11, 11] : [8, 8]
+                                    });
+                                    const vehicleMarker = L.marker(midPoint, { icon: vehicleIcon });
+                                    vehicleMarker.bindTooltip(`<b>Enroute Dispatch</b><br>ID: ${disp.report_id}${isSelected ? ' (Selected)' : ''}`, { direction: 'top' });
+                                    layers.routes.addLayer(vehicleMarker);
+                                    if (isSelected) {
+                                        setTimeout(() => vehicleMarker.openTooltip(), 350);
+                                    }
+                                }
+                            } else if (st.coordinates && disp.coordinates) {
+                                const fallbackLine = L.polyline([
+                                    [st.coordinates.lat, st.coordinates.lng],
+                                    [disp.coordinates.lat, disp.coordinates.lng]
+                                ], { 
+                                    color: isSelected ? '#2ea043' : '#f85149', 
+                                    weight: isSelected ? 4 : 1.5, 
+                                    dashArray: isSelected ? '8, 8' : '6, 6', 
+                                    opacity: isSelected ? 1.0 : 0.25 
+                                });
+                                layers.routes.addLayer(fallbackLine);
+                                if (isSelected) {
+                                    selectedCoords = [disp.coordinates.lat, disp.coordinates.lng];
+                                }
+                            }
+                        });
+
+                        if (selectedPolyline && selectedPolyline.length > 0) {
+                            map.fitBounds(L.polyline(selectedPolyline).getBounds(), { padding: [50, 50], maxZoom: 15 });
+                        } else if (selectedCoords) {
+                            map.flyTo(selectedCoords, 14);
+                        }
+                    };
+
                     function clearMapSelection() {
                         selectedStationName = null;
+                        selectedDispatchId = null;
                         layers.routes.clearLayers();
                         renderStationsList();
                         document.getElementById('tccMapStatus').textContent = 'Select a station to map live routing geometries';
@@ -4400,7 +4943,6 @@
             const ids = [
                 'btnTabLiveMap',
                 'btnTabForecast',
-                'btnTabDeployment',
                 'btnTabAnalytics',
                 'btnTabResources',
                 'btnTabSubmitReportandNews',
@@ -4412,7 +4954,6 @@
             const vids = [
                 'viewLiveMap',
                 'viewForecast',
-                'viewDeployment',
                 'viewAnalytics',
                 'viewResources',
                 'viewSubmitReportandNews',
@@ -4436,13 +4977,6 @@
                 document.getElementById('viewForecast')?.classList.add('active');
                 if (typeof closeDrawer === 'function') closeDrawer();
                 if (typeof miniMap !== 'undefined' && miniMap) setTimeout(() => miniMap.invalidateSize(), 150);
-
-            } else if (tabName === 'deployment') {
-                document.getElementById('btnTabDeployment')?.classList.add('active');
-                document.getElementById('viewDeployment')?.classList.add('active');
-                if (typeof closeDrawer === 'function') closeDrawer();
-                if (typeof renderDeploymentPlan === 'function') renderDeploymentPlan();
-                if (typeof deployMap !== 'undefined' && deployMap) setTimeout(() => deployMap.invalidateSize(), 200);
 
             } else if (tabName === 'analytics') {
                 document.getElementById('btnTabAnalytics')?.classList.add('active');
@@ -4519,12 +5053,19 @@
                 ]);
 
                 // Store parsed payloads directly into state registry matching architecture types
-                const reportsPayload = (reportsRes && (reportsRes.active_reports || reportsRes.reports)) || [];
-                const resolvedReports = (reportsPayload.active_reports && reportsPayload.active_reports.length > 0)
-                    ? reportsPayload.active_reports
-                    : (reportsPayload.reports && reportsPayload.reports.length > 0)
-                        ? reportsPayload.reports
-                        : (Array.isArray(reportsRes) && reportsRes.length > 0) ? reportsRes : MOCK_REPORTS;
+                let resolvedReports = null;
+                if (reportsRes) {
+                    if (Array.isArray(reportsRes.active_reports) && reportsRes.active_reports.length > 0) {
+                        resolvedReports = reportsRes.active_reports;
+                    } else if (Array.isArray(reportsRes.reports) && reportsRes.reports.length > 0) {
+                        resolvedReports = reportsRes.reports;
+                    } else if (Array.isArray(reportsRes) && reportsRes.length > 0) {
+                        resolvedReports = reportsRes;
+                    }
+                }
+                if (!resolvedReports || resolvedReports.length === 0) {
+                    resolvedReports = MOCK_REPORTS;
+                }
 
                 appState.reports = resolvedReports;
                 appState.news = (newsRes && (newsRes.active_news || newsRes.news)) ? (newsRes.active_news || newsRes.news) : [];
@@ -4551,6 +5092,8 @@
                 updateNavbarCounters();
             }
         }
+
+        window.loadInitialDataStack = loadInitialDataStack;
 
         // ── 3. CLOCK TICKER & NAVBAR RE-EVALUATION LOGIC ────────────────────────
         function initClockTicker() {

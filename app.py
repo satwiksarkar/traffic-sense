@@ -1,9 +1,16 @@
 import os
+import sys
 import time
 import threading
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 import requests
+
+try:
+    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stderr.reconfigure(encoding='utf-8')
+except AttributeError:
+    pass
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 FRONTEND_FOLDER = os.path.join(ROOT_DIR, "frontend")
@@ -42,7 +49,7 @@ from service.traffic_assignment.traffic_assignment import TrafficAssignmentManag
 from service.db.util import load_city_traffic_stations
 from service.route_recomend.util import create_city_graph
 
-from backend.query import process_single_news_item
+
 
 
 def news_sync_worker(news_manager):
@@ -134,12 +141,24 @@ def save_news():
     if not data or not data.get("issue_type") or not data.get("description"):
         return jsonify({"success": False, "error": "Missing required fields."}), 400
 
+    lat_val = data.get("lat")
+    lng_val = data.get("lng")
+    try:
+        lat_val = float(lat_val) if (lat_val is not None and str(lat_val).strip() != "") else None
+    except (ValueError, TypeError):
+        lat_val = None
+
+    try:
+        lng_val = float(lng_val) if (lng_val is not None and str(lng_val).strip() != "") else None
+    except (ValueError, TypeError):
+        lng_val = None
+
     success, message = app.news_report_manager.insert_external_news(
         issue_type=data.get("issue_type"),
         description=data.get("description"),
         location_name=data.get("location_name"),
-        lat=data.get("lat"),
-        lng=data.get("lng"),
+        lat=lat_val,
+        lng=lng_val,
         priority=data.get("priority", "LOW"),
         timestamp=data.get("timestamp"),
     )
@@ -220,10 +239,26 @@ def save_report():
     if not location_name or not event_cause:
         return jsonify({"success": False, "error": "Missing required fields."}), 400
 
+    try:
+        lat_val = float(lat) if (lat and lat.strip()) else 0.0
+    except (ValueError, TypeError):
+        lat_val = 0.0
+
+    try:
+        lng_val = float(lng) if (lng and lng.strip()) else 0.0
+    except (ValueError, TypeError):
+        lng_val = 0.0
+
+    if lat_val == 0.0 or lng_val == 0.0:
+        import random
+        # Bangalore center default with small random offset
+        lat_val = 12.9716 + random.uniform(-0.03, 0.03)
+        lng_val = 77.5946 + random.uniform(-0.03, 0.03)
+
     success, message = app.traffic_report_manager.insert_traffic_report(
         issue_type=event_cause,
-        lat=lat,
-        lng=lng,
+        lat=lat_val,
+        lng=lng_val,
         location_name=location_name,
         description=description,
         priority=priority,
@@ -270,6 +305,26 @@ def mappls_route():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/toggle_barricade", methods=["POST"])
+def toggle_barricade():
+    """Toggles barricade status for an incident in the SQLite database."""
+    try:
+        data = request.get_json()
+        if not data or "id" not in data:
+            return jsonify({"success": False, "error": "Missing incident 'id' parameter"}), 400
+        
+        report_id = data["id"]
+        status = int(data.get("status", 0)) # 1 for placed, 0 for cleared
+        
+        success, msg = app.traffic_report_manager.toggle_barricade(report_id, status)
+        if success:
+            return jsonify({"success": True, "message": msg})
+        else:
+            return jsonify({"success": False, "error": msg}), 500
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @app.route("/api/route_diversion")
 def route_diversion():
     """Calculates a dynamic diversion route avoiding other active incidents using OSMnx."""
@@ -278,6 +333,7 @@ def route_diversion():
     dest_lat = request.args.get("dest_lat")
     dest_lng = request.args.get("dest_lng")
     report_id = request.args.get("report_id")
+    barricaded = request.args.get("barricaded") == "true"
     
     if not app.route_manager:
         return jsonify({"error": "Route manager not initialized"}), 500
@@ -288,7 +344,11 @@ def route_diversion():
         
         # Fetch other active reports to penalize
         all_incidents = app.traffic_report_manager.get_active_incidents()
-        other_incidents = [inc for inc in all_incidents if inc.get("id") != report_id]
+        
+        if barricaded:
+            other_incidents = all_incidents
+        else:
+            other_incidents = [inc for inc in all_incidents if inc.get("id") != report_id]
         
         from service.route_recomend.util import shortest_path as sp_with_penalties
         route_coords = sp_with_penalties(
@@ -360,7 +420,7 @@ def get_route_status():
 import random
 
 from flask import jsonify, request
-from backend.query import process_single_news_item
+
 
 
 from flask import jsonify, request

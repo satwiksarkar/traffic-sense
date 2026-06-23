@@ -1,20 +1,45 @@
 import os
+import sys
 import networkx as nx
 import osmnx as ox
 
+try:
+    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stderr.reconfigure(encoding='utf-8')
+except AttributeError:
+    pass
+
+
 def create_city_graph(DATA_BASE_DIR, city_name="Bangalore", network_type="drive"):
     """
-    Checks for a locally saved GraphML file. If it exists, loads it instantly.
-    Otherwise, downloads from OSM, processes metrics, and caches it to disk.
+    Checks for a locally saved Pickle (.pkl) file first for instant loading.
+    If not found, falls back to GraphML, unprojects, caches it to Pickle, and returns.
     """
-    # Sanitize name for file system storage (e.g., "bangalore_drive.graphml")
-    file_name = f"{city_name.lower().replace(' ', '_')}_{network_type}.graphml"
+    import joblib
+
+    # Sanitize name for file system storage
+    base_name = f"{city_name.lower().replace(' ', '_')}_{network_type}"
+    pkl_name = f"{base_name}.pkl"
+    file_name = f"{base_name}.graphml"
+    
+    pkl_path = os.path.join(DATA_BASE_DIR, pkl_name)
     file_path = os.path.join(DATA_BASE_DIR, file_name)
 
-    # 1. Direct Load Strategy: If the processed graph exists on disk, load it immediately
+    # 1. Check Pickle Cache First (Loads in ~2 seconds)
+    if os.path.exists(pkl_path):
+        print(f"📂 Found cached pickle map network at: {pkl_path}")
+        print(f"🚀 Loading {city_name} topological matrix directly from Pickle...")
+        try:
+            G_projected = joblib.load(pkl_path)
+            print(f"✅ Loaded from pickle successfully! Nodes: {len(G_projected.nodes)} | Edges: {len(G_projected.edges)}")
+            return G_projected
+        except Exception as e:
+            print(f"⚠️ Error loading cached pickle: {e}, falling back to GraphML...")
+
+    # 2. Direct Load Strategy from GraphML
     if os.path.exists(file_path):
-        print(f"📂 Found cached map network at: {file_path}")
-        print(f"🚀 Loading {city_name} topological matrix directly from disk...")
+        print(f"📂 Found cached GraphML map network at: {file_path}")
+        print(f"🚀 Loading {city_name} topological matrix directly from GraphML...")
         try:
             G_projected = ox.load_graphml(file_path)
             
@@ -25,12 +50,20 @@ def create_city_graph(DATA_BASE_DIR, city_name="Bangalore", network_type="drive"
                 print("🔄 Unprojecting loaded graph to GPS decimal degrees (lat/lng)...")
                 G_projected = ox.project_graph(G_projected, to_latlong=True)
                 
+            # Cache the unprojected graph to Pickle for future instant loads
+            try:
+                print(f"💾 Caching unprojected graph to Pickle at: {pkl_path}")
+                joblib.dump(G_projected, pkl_path)
+                print("✅ Cached to Pickle successfully!")
+            except Exception as ex:
+                print(f"⚠️ Failed to cache pickle: {ex}")
+                
             print(f"✅ Loaded successfully! Nodes: {len(G_projected.nodes)} | Edges: {len(G_projected.edges)}")
             return G_projected
         except Exception as e:
-            print(f"⚠️ Error loading cached file, falling back to download: {e}")
+            print(f"⚠️ Error loading cached GraphML, falling back to download: {e}")
 
-    # 2. Download Strategy: Runs if cache doesn't exist
+    # 3. Download Strategy: Runs if cache doesn't exist
     print(f"🌐 Cache miss. Querying OpenStreetMap geospatial bounds for: {city_name}...")
     try:
         # Ensure target database directory directory exists
@@ -48,12 +81,21 @@ def create_city_graph(DATA_BASE_DIR, city_name="Bangalore", network_type="drive"
         G_projected = ox.add_edge_speeds(G_projected)
         G_projected = ox.add_edge_travel_times(G_projected)
         
-        # 3. Store to Database Dir: Cache the fully built graph for next system startup
-        print(f"💾 Caching processed graph to disk at: {file_path}")
+        # Store to Database Dir: Cache the GraphML graph
+        print(f"💾 Caching processed graph to GraphML at: {file_path}")
         ox.save_graphml(G_projected, filepath=file_path)
         
         # Unproject to return standard GPS lat/lng decimal degree graph
         G_projected = ox.project_graph(G_projected, to_latlong=True)
+        
+        # Cache the unprojected graph to Pickle
+        try:
+            print(f"💾 Caching unprojected graph to Pickle at: {pkl_path}")
+            joblib.dump(G_projected, pkl_path)
+            print("✅ Cached to Pickle successfully!")
+        except Exception as ex:
+            print(f"⚠️ Failed to cache pickle: {ex}")
+            
         print(f"✅ Setup complete. Nodes: {len(G_projected.nodes)} | Edges: {len(G_projected.edges)}")
         return G_projected
 
@@ -91,6 +133,9 @@ def shortest_path(G, source, destination, active_incidents=None):
                 continue
                 
             # Iterate through edges and penalize those within ~400 meters (approx 0.004 degrees lat/lng)
+            is_barricaded = incident.get("barricaded") == 1 or incident.get("barricaded") is True
+            penalty = 5000.0 if is_barricaded else 20.0
+            
             for u, v, k, data in G_temp.edges(keys=True, data=True):
                 node_u = G_temp.nodes[u]
                 edge_lat = node_u.get('y')
@@ -98,8 +143,8 @@ def shortest_path(G, source, destination, active_incidents=None):
                 if edge_lat and edge_lng:
                     dist = math.sqrt((edge_lat - lat_val)**2 + (edge_lng - lng_val)**2)
                     if dist < 0.004:
-                        # Apply a 20x weight penalty to force the routing search to divert away
-                        data["length"] = data.get("length", 1.0) * 20.0
+                        # Apply dynamic weight penalty based on barricade status
+                        data["length"] = data.get("length", 1.0) * penalty
 
     # 2. Get nearest nodes (OSMnx expects longitude X first, then latitude Y)
     start_node = ox.distance.nearest_nodes(G_temp, source[1], source[0])

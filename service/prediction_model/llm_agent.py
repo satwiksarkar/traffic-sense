@@ -15,8 +15,12 @@ from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
 
-# Load the secret API key from the .env file
-load_dotenv()
+# Find the absolute path to backend/.env relative to this file's location
+base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+env_path = os.path.join(base_dir, "backend", ".env")
+
+# Force load from the correct directory path
+load_dotenv(dotenv_path=env_path)
 GOOGLE_API_KEY = os.getenv("GEMINI_API_KEY")
 
 if not GOOGLE_API_KEY:

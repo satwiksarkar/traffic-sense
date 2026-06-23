@@ -49,6 +49,16 @@ class TrafficReportManager:
                 except sqlite3.OperationalError:
                     pass
 
+                try:
+                    cursor.execute("ALTER TABLE traffic_reports ADD COLUMN barricaded INTEGER DEFAULT 0")
+                except sqlite3.OperationalError:
+                    pass
+
+                try:
+                    cursor.execute("ALTER TABLE active_incidents ADD COLUMN barricaded INTEGER DEFAULT 0")
+                except sqlite3.OperationalError:
+                    pass
+
                 for col in [("location_name", "TEXT"), ("description", "TEXT"), ("priority", "TEXT DEFAULT 'MEDIUM'")]:
                     try:
                         cursor.execute(f"ALTER TABLE active_incidents ADD COLUMN {col[0]} {col[1]}")
@@ -165,7 +175,7 @@ class TrafficReportManager:
                 
                 # 1. Fetch consolidated active incidents
                 cursor.execute('''
-                    SELECT id, issue_type, mean_lat, mean_lng, report_count, location_name, description, priority, last_updated
+                    SELECT id, issue_type, mean_lat, mean_lng, report_count, location_name, description, priority, last_updated, barricaded
                     FROM active_incidents
                     ORDER BY last_updated DESC
                 ''')
@@ -190,12 +200,13 @@ class TrafficReportManager:
                         "minutes_ago": minutes_ago,
                         "distance_km": distance_km,
                         "officers": officers,
-                        "last_updated": row['last_updated']
+                        "last_updated": row['last_updated'],
+                        "barricaded": row['barricaded'] if 'barricaded' in row.keys() else 0
                     })
 
                 # 2. Fetch raw unclustered reports
                 cursor.execute('''
-                    SELECT id, issue_type, lat, lng, location_name, description, priority, timestamp
+                    SELECT id, issue_type, lat, lng, location_name, description, priority, timestamp, barricaded
                     FROM traffic_reports
                     ORDER BY timestamp DESC
                 ''')
@@ -220,7 +231,8 @@ class TrafficReportManager:
                         "minutes_ago": minutes_ago,
                         "distance_km": distance_km,
                         "officers": officers,
-                        "last_updated": row['timestamp']
+                        "last_updated": row['timestamp'],
+                        "barricaded": row['barricaded'] if 'barricaded' in row.keys() else 0
                     })
         except sqlite3.Error as e:
             print(f"[DB Read Error]: {e}")
@@ -286,6 +298,34 @@ class TrafficReportManager:
                 except sqlite3.Error as e:
                     conn.rollback()
                     print(f"[System Transaction Error]: Processing aborted and rolled back: {e}")
+
+    def toggle_barricade(self, report_id, status: int):
+        """Updates the barricaded state of a report in the sqlite database."""
+        try:
+            string_id = str(report_id).strip()
+            target_table = None
+            clean_id = None
+
+            if string_id.startswith("cluster_"):
+                target_table = "active_incidents"
+                clean_id = string_id.replace("cluster_", "")
+            elif string_id.startswith("raw_"):
+                target_table = "traffic_reports"
+                clean_id = string_id.replace("raw_", "")
+            else:
+                clean_id = string_id
+
+            with sqlite3.connect(self.report_db_path) as conn:
+                cursor = conn.cursor()
+                if target_table:
+                    cursor.execute(f"UPDATE {target_table} SET barricaded = ? WHERE id = ?", (status, clean_id))
+                else:
+                    cursor.execute("UPDATE traffic_reports SET barricaded = ? WHERE id = ?", (status, clean_id))
+                    cursor.execute("UPDATE active_incidents SET barricaded = ? WHERE id = ?", (status, clean_id))
+                conn.commit()
+                return True, f"Barricade status updated to {status} for ID {string_id}."
+        except sqlite3.Error as e:
+            return False, f"Failed to update barricade status: {str(e)}"
 
 from datetime import datetime, timezone
 import os
